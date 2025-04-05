@@ -18,15 +18,6 @@ console.log('Firebase Config:', {
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyB9nF1YnqwQrCk1-XKEie7TcdmngHBkA2s",
-  authDomain: "this-is-ai-fitness-bot.firebaseapp.com",
-  projectId: "this-is-ai-fitness-bot",
-  storageBucket: "this-is-ai-fitness-bot.firebasestorage.app",
-  messagingSenderId: "22907461879",
-  appId: "1:22907461879:web:6ec99a9b7509d1a677f3f2",
-  measurementId: "G-MY1WEX04L6"
-};
 
 // Проверяем, что все необходимые значения присутствуют
 const missingConfig = Object.entries(firebaseConfig)
