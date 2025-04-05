@@ -11,6 +11,7 @@ export interface Meal {
   protein: number;
   fat: number;
   carbs: number;
+  grams: number;
   category: MealCategory;
   timestamp: Date;
 }
@@ -71,7 +72,8 @@ export interface AIResponse {
 export const formatDate = (date: Date): string => {
   return date.toLocaleDateString('ru-RU', {
     day: 'numeric',
-    month: 'long'
+    month: 'long',
+    year: 'numeric'
   });
 };
 

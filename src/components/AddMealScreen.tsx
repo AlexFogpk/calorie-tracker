@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { IoClose } from 'react-icons/io5';
 import { FaRobot } from 'react-icons/fa';
@@ -13,17 +13,47 @@ interface AddMealScreenProps {
   selectedDate: Date;
 }
 
+interface NutritionValues {
+  calories: string;
+  protein: string;
+  fat: string;
+  carbs: string;
+  grams: string;
+}
+
 const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) => {
   const { user } = useAuth();
   const [name, setName] = useState('');
-  const [calories, setCalories] = useState('');
-  const [protein, setProtein] = useState('');
-  const [fat, setFat] = useState('');
-  const [carbs, setCarbs] = useState('');
   const [category, setCategory] = useState<MealCategory>(MEAL_CATEGORIES[0]);
   const [isLoading, setIsLoading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Состояние для текущих значений
+  const [values, setValues] = useState<NutritionValues>({
+    calories: '',
+    protein: '',
+    fat: '',
+    carbs: '',
+    grams: ''
+  });
+
+  // Состояние для хранения исходных значений от AI
+  const [aiValues, setAiValues] = useState<NutritionValues | null>(null);
+
+  // Функция для пересчета значений при изменении граммовки
+  const recalculateValues = (newGrams: string) => {
+    if (!aiValues || !newGrams || parseFloat(newGrams) === 0) return;
+
+    const ratio = parseFloat(newGrams) / parseFloat(aiValues.grams);
+    setValues({
+      calories: Math.round(parseFloat(aiValues.calories) * ratio).toString(),
+      protein: Math.round(parseFloat(aiValues.protein) * ratio).toString(),
+      fat: Math.round(parseFloat(aiValues.fat) * ratio).toString(),
+      carbs: Math.round(parseFloat(aiValues.carbs) * ratio).toString(),
+      grams: newGrams
+    });
+  };
 
   const handleAIAnalysis = async () => {
     if (!name.trim()) {
@@ -38,10 +68,18 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
       const result = await analyzeFood(name);
       
       if (result.success && result.analysis) {
-        setCalories(result.analysis.calories.toString());
-        setProtein(result.analysis.protein.toString());
-        setFat(result.analysis.fat.toString());
-        setCarbs(result.analysis.carbs.toString());
+        const newValues = {
+          calories: result.analysis.calories.toString(),
+          protein: result.analysis.protein.toString(),
+          fat: result.analysis.fat.toString(),
+          carbs: result.analysis.carbs.toString(),
+          grams: result.analysis.portion.toString()
+        };
+        
+        // Сохраняем исходные значения от AI
+        setAiValues(newValues);
+        // Устанавливаем текущие значения
+        setValues(newValues);
       } else {
         setError(result.error || 'Не удалось проанализировать блюдо');
       }
@@ -50,6 +88,12 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
       setError('Ошибка при анализе блюда');
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (e.target.value === '0') {
+      e.target.value = '';
     }
   };
 
@@ -63,10 +107,11 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
     try {
       const mealData: Omit<Meal, 'id'> = {
         name: name.trim(),
-        calories: parseInt(calories) || 0,
-        protein: parseInt(protein) || 0,
-        fat: parseInt(fat) || 0,
-        carbs: parseInt(carbs) || 0,
+        calories: parseInt(values.calories) || 0,
+        protein: parseInt(values.protein) || 0,
+        fat: parseInt(values.fat) || 0,
+        carbs: parseInt(values.carbs) || 0,
+        grams: parseInt(values.grams) || 0,
         category,
         timestamp: selectedDate
       };
@@ -97,7 +142,7 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
         className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden"
       >
         <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Добавить приём пищи</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Добавить приём пищи</h2>
           <button
             onClick={onClose}
             className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
@@ -108,7 +153,7 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div className="relative">
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="name" className="block text-sm font-medium text-gray-800 mb-1">
               Название блюда
             </label>
             <div className="flex gap-2">
@@ -117,7 +162,7 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="flex-1 px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
               <motion.button
@@ -135,14 +180,14 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
           </div>
 
           <div>
-            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="category" className="block text-sm font-medium text-gray-800 mb-1">
               Категория
             </label>
             <select
               id="category"
               value={category}
               onChange={(e) => setCategory(e.target.value as MealCategory)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               {MEAL_CATEGORIES.map(cat => (
                 <option key={cat} value={cat}>
@@ -152,62 +197,98 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
             </select>
           </div>
 
+          <div>
+            <label htmlFor="grams" className="block text-sm font-medium text-gray-800 mb-1">
+              Граммы
+            </label>
+            <input
+              type="number"
+              id="grams"
+              inputMode="numeric"
+              value={values.grams}
+              onChange={(e) => {
+                const newGrams = e.target.value;
+                setValues(prev => ({ ...prev, grams: newGrams }));
+                if (aiValues) {
+                  recalculateValues(newGrams);
+                }
+              }}
+              onFocus={handleInputFocus}
+              placeholder="0"
+              className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              min="0"
+              required
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="calories" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="calories" className="block text-sm font-medium text-gray-800 mb-1">
                 Калории
               </label>
               <input
                 type="number"
                 id="calories"
-                value={calories}
-                onChange={(e) => setCalories(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                inputMode="numeric"
+                value={values.calories}
+                onChange={(e) => setValues(prev => ({ ...prev, calories: e.target.value }))}
+                onFocus={handleInputFocus}
+                placeholder="0"
+                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 min="0"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="protein" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="protein" className="block text-sm font-medium text-gray-800 mb-1">
                 Белки (г)
               </label>
               <input
                 type="number"
                 id="protein"
-                value={protein}
-                onChange={(e) => setProtein(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                inputMode="numeric"
+                value={values.protein}
+                onChange={(e) => setValues(prev => ({ ...prev, protein: e.target.value }))}
+                onFocus={handleInputFocus}
+                placeholder="0"
+                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 min="0"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="fat" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="fat" className="block text-sm font-medium text-gray-800 mb-1">
                 Жиры (г)
               </label>
               <input
                 type="number"
                 id="fat"
-                value={fat}
-                onChange={(e) => setFat(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                inputMode="numeric"
+                value={values.fat}
+                onChange={(e) => setValues(prev => ({ ...prev, fat: e.target.value }))}
+                onFocus={handleInputFocus}
+                placeholder="0"
+                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 min="0"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="carbs" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="carbs" className="block text-sm font-medium text-gray-800 mb-1">
                 Углеводы (г)
               </label>
               <input
                 type="number"
                 id="carbs"
-                value={carbs}
-                onChange={(e) => setCarbs(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                inputMode="numeric"
+                value={values.carbs}
+                onChange={(e) => setValues(prev => ({ ...prev, carbs: e.target.value }))}
+                onFocus={handleInputFocus}
+                placeholder="0"
+                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 min="0"
                 required
               />

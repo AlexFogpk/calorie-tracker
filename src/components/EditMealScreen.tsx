@@ -67,7 +67,7 @@ const EditMealScreen: React.FC<EditMealScreenProps> = ({ meal, onClose }) => {
         className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden"
       >
         <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Редактировать приём пищи</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Редактировать приём пищи</h2>
           <button
             onClick={onClose}
             className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
@@ -78,7 +78,7 @@ const EditMealScreen: React.FC<EditMealScreenProps> = ({ meal, onClose }) => {
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="name" className="block text-sm font-medium text-gray-800 mb-1">
               Название блюда
             </label>
             <input
@@ -86,20 +86,20 @@ const EditMealScreen: React.FC<EditMealScreenProps> = ({ meal, onClose }) => {
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             />
           </div>
 
           <div>
-            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="category" className="block text-sm font-medium text-gray-800 mb-1">
               Категория
             </label>
             <select
               id="category"
               value={category}
               onChange={(e) => setCategory(e.target.value as MealCategory)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               {MEAL_CATEGORIES.map(cat => (
                 <option key={cat} value={cat}>
@@ -111,7 +111,7 @@ const EditMealScreen: React.FC<EditMealScreenProps> = ({ meal, onClose }) => {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="calories" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="calories" className="block text-sm font-medium text-gray-800 mb-1">
                 Калории
               </label>
               <input
@@ -119,14 +119,14 @@ const EditMealScreen: React.FC<EditMealScreenProps> = ({ meal, onClose }) => {
                 id="calories"
                 value={calories}
                 onChange={(e) => setCalories(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 min="0"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="protein" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="protein" className="block text-sm font-medium text-gray-800 mb-1">
                 Белки (г)
               </label>
               <input
@@ -134,14 +134,14 @@ const EditMealScreen: React.FC<EditMealScreenProps> = ({ meal, onClose }) => {
                 id="protein"
                 value={protein}
                 onChange={(e) => setProtein(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 min="0"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="fat" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="fat" className="block text-sm font-medium text-gray-800 mb-1">
                 Жиры (г)
               </label>
               <input
@@ -149,14 +149,14 @@ const EditMealScreen: React.FC<EditMealScreenProps> = ({ meal, onClose }) => {
                 id="fat"
                 value={fat}
                 onChange={(e) => setFat(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 min="0"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="carbs" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="carbs" className="block text-sm font-medium text-gray-800 mb-1">
                 Углеводы (г)
               </label>
               <input
@@ -164,7 +164,7 @@ const EditMealScreen: React.FC<EditMealScreenProps> = ({ meal, onClose }) => {
                 id="carbs"
                 value={carbs}
                 onChange={(e) => setCarbs(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 min="0"
                 required
               />

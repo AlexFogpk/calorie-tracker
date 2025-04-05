@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { doc, getDoc, collection, query, where, onSnapshot, deleteDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, onSnapshot, deleteDoc, updateDoc, orderBy, setDoc } from 'firebase/firestore';
 import { db } from './firebaseConfig';
 import { useAuth } from './hooks/useAuth';
 import { FaUserCog, FaUtensils } from 'react-icons/fa';
@@ -14,27 +14,37 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Meal, MealCategory, MEAL_CATEGORIES, formatDate } from './types';
 import NutritionRings from './components/NutritionRings';
 import EditMealScreen from './components/EditMealScreen';
+import Calendar from './components/Calendar';
+import { IoAddCircle } from 'react-icons/io5';
+import { FiUser } from 'react-icons/fi';
 
-type Screen = 'welcome' | 'parameters' | 'main' | 'addMeal';
+type Screen = 'welcome' | 'parameters' | 'main' | 'add' | 'edit' | 'addMeal';
+
+// Add this interface for user profile data
+interface UserProfile {
+  name?: string;
+  weight?: number;
+  height?: number;
+  age?: number;
+  gender?: 'male' | 'female';
+  activityLevel?: 'low' | 'medium' | 'high';
+  goals?: {
+    calories: number;
+    protein: number;
+    fat: number;
+    carbs: number;
+  };
+}
 
 const App: React.FC = () => {
   const { user, loading: authLoading, error: authError } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<Screen>('main');
-  const [userName, setUserName] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isNewUser, setIsNewUser] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState(() => {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    return now;
-  });
-  const [meals, setMeals] = useState<Record<MealCategory, Meal[]>>({
-    'Завтрак': [],
-    'Обед': [],
-    'Ужин': [],
-    'Перекус': []
-  });
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [meals, setMeals] = useState<Meal[]>([]);
   const [showAddMeal, setShowAddMeal] = useState(false);
   const [editingMeal, setEditingMeal] = useState<Meal | null>(null);
 
@@ -57,8 +67,8 @@ const App: React.FC = () => {
       try {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setUserName(userData.name || null);
+          const userData = userDoc.data() as UserProfile;
+          setUserProfile(userData);
           setIsNewUser(false);
           setCurrentScreen('main');
         } else {
@@ -81,40 +91,31 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
-    const today = new Date(selectedDate);
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const startOfDay = new Date(selectedDate);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(selectedDate);
+    endOfDay.setHours(23, 59, 59, 999);
 
     const q = query(
       collection(db, `users/${user.uid}/meals`),
-      where('timestamp', '>=', today),
-      where('timestamp', '<', tomorrow)
+      where('timestamp', '>=', startOfDay),
+      where('timestamp', '<=', endOfDay),
+      orderBy('timestamp', 'desc')
     );
 
-    const unsubscribe = onSnapshot(q, 
-      (snapshot) => {
-        const mealsByCategory: Record<MealCategory, Meal[]> = {
-          'Завтрак': [],
-          'Обед': [],
-          'Ужин': [],
-          'Перекус': []
-        };
-
-        snapshot.docs.forEach(doc => {
-          const meal = { id: doc.id, ...doc.data() } as Meal;
-          mealsByCategory[meal.category].push(meal);
-        });
-
-        setMeals(mealsByCategory);
-        setLoading(false);
-      },
-      (error) => {
-        console.error('Error loading meals:', error);
-        setError('Ошибка при загрузке приёмов пищи');
-        setLoading(false);
-      }
-    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const mealsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Meal[];
+      setMeals(mealsData);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error fetching meals:', error);
+      setError('Ошибка при загрузке данных');
+      setLoading(false);
+    });
 
     return () => unsubscribe();
   }, [user, selectedDate]);
@@ -149,19 +150,40 @@ const App: React.FC = () => {
     handleScreenChange('parameters');
   };
 
-  const handleEditMeal = (meal: Meal) => {
-    setEditingMeal(meal);
+  const handleEditMeal = async (updatedMeal: Meal): Promise<void> => {
+    if (!user) return;
+    try {
+      // Extract fields from the meal to avoid the Firestore error
+      const { id, ...mealData } = updatedMeal;
+      await updateDoc(doc(db, `users/${user.uid}/meals/${id}`), mealData);
+      const updatedMeals = meals.map(meal => 
+        meal.id === updatedMeal.id ? updatedMeal : meal
+      );
+      setMeals(updatedMeals);
+    } catch (error) {
+      console.error('Error updating meal:', error);
+    }
   };
 
-  const handleDeleteMeal = async (mealId: string) => {
+  const handleDeleteMeal = async (mealId: string): Promise<void> => {
     if (!user) return;
     try {
       await deleteDoc(doc(db, `users/${user.uid}/meals/${mealId}`));
+      const updatedMeals = meals.filter(meal => meal.id !== mealId);
+      setMeals(updatedMeals);
     } catch (error) {
       console.error('Error deleting meal:', error);
-      setError('Ошибка при удалении приёма пищи');
     }
   };
+
+  const handleDateSelect = (date: Date) => {
+    setSelectedDate(date);
+  };
+
+  const totalCalories = meals.reduce((sum, meal) => sum + meal.calories, 0);
+  const totalProtein = meals.reduce((sum, meal) => sum + meal.protein, 0);
+  const totalFat = meals.reduce((sum, meal) => sum + meal.fat, 0);
+  const totalCarbs = meals.reduce((sum, meal) => sum + meal.carbs, 0);
 
   if (authLoading || loading) {
     return (
@@ -210,112 +232,78 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#f5f5f5]">
-      <AnimatePresence mode="wait">
-        {currentScreen === 'welcome' && (
-          <WelcomeScreen key="welcome" onComplete={handleWelcomeComplete} />
-        )}
-        {currentScreen === 'parameters' && (
-          <UserParameters key="parameters" onComplete={handleParametersComplete} />
-        )}
-        {currentScreen === 'main' && (
-          <motion.div
-            key="main"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="container mx-auto px-4 py-8"
-          >
-            <AppTitle />
-            
-            <div className="mt-8 flex justify-between items-center">
-              <DatePicker
-                selectedDate={selectedDate}
-                onDateChange={setSelectedDate}
-              />
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleAddMeal}
-                className="bg-blue-500 text-white px-6 py-2 rounded-xl font-medium hover:bg-blue-600 transition-colors"
-              >
-                Добавить еду
-              </motion.button>
-            </div>
+      {currentScreen === 'welcome' && (
+        <WelcomeScreen
+          onComplete={handleWelcomeComplete}
+        />
+      )}
 
-            <div className="mt-8">
+      {currentScreen === 'parameters' && (
+        <UserParameters
+          onComplete={handleParametersComplete}
+        />
+      )}
+
+      {currentScreen === 'main' && (
+        <>
+          <div className="sticky top-0 z-10 bg-white shadow-sm pb-4">
+            <div className="max-w-md mx-auto px-4 pt-4">
+              <AppTitle />
+              <div className="flex items-center justify-between mt-4">
+                <button
+                  onClick={() => setCurrentScreen('parameters')}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Настройки
+                </button>
+                <Calendar
+                  selectedDate={selectedDate}
+                  onDateSelect={setSelectedDate}
+                  compact
+                />
+                <button
+                  onClick={() => setCurrentScreen('addMeal')}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Добавить
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 overflow-auto p-4">
+            <div className="max-w-md mx-auto space-y-4">
               <NutritionRings
-                calories={Object.values(meals).flat().reduce((sum, meal) => sum + meal.calories, 0)}
-                protein={Object.values(meals).flat().reduce((sum, meal) => sum + meal.protein, 0)}
-                fat={Object.values(meals).flat().reduce((sum, meal) => sum + meal.fat, 0)}
-                carbs={Object.values(meals).flat().reduce((sum, meal) => sum + meal.carbs, 0)}
-                goals={{
+                calories={totalCalories}
+                protein={totalProtein}
+                fat={totalFat}
+                carbs={totalCarbs}
+                goals={userProfile?.goals || {
                   calories: 2000,
                   protein: 150,
                   fat: 70,
                   carbs: 250
                 }}
               />
+              <DailyMealLog
+                meals={meals}
+                onEditMeal={handleEditMeal}
+                onDeleteMeal={handleDeleteMeal}
+              />
             </div>
+          </div>
+        </>
+      )}
 
-            <div className="mt-8 space-y-6">
-              {MEAL_CATEGORIES.map(category => (
-                <div key={category} className="bg-white rounded-xl shadow-sm p-4">
-                  <h2 className="text-lg font-semibold mb-4">{category}</h2>
-                  <div className="space-y-3">
-                    {meals[category].map(meal => (
-                      <motion.div
-                        key={meal.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                      >
-                        <div>
-                          <h3 className="font-medium">{meal.name}</h3>
-                          <p className="text-sm text-gray-500">
-                            {meal.calories} ккал • {meal.protein}г белка • {meal.fat}г жиров • {meal.carbs}г углеводов
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleEditMeal(meal)}
-                            className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-                          >
-                            Изменить
-                          </button>
-                          <button
-                            onClick={() => handleDeleteMeal(meal.id)}
-                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                          >
-                            Удалить
-                          </button>
-                        </div>
-                      </motion.div>
-                    ))}
-                    {meals[category].length === 0 && (
-                      <p className="text-gray-500 text-center py-4">
-                        Нет приёмов пищи
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
+      {currentScreen === 'addMeal' && (
+        <AddMealScreen
+          onClose={() => setCurrentScreen('main')}
+          selectedDate={selectedDate}
+        />
+      )}
+
       <AnimatePresence>
-        {currentScreen === 'addMeal' && (
-          <AddMealScreen
-            key="addMeal"
-            onClose={handleAddMealClose}
-            selectedDate={selectedDate}
-          />
-        )}
         {editingMeal && (
           <EditMealScreen
-            key="edit-meal"
             meal={editingMeal}
             onClose={() => setEditingMeal(null)}
           />
