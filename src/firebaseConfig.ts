@@ -6,22 +6,24 @@ import { getFirestore } from "firebase/firestore";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
-// Отладочный вывод для проверки значений
-console.log('Firebase Config:', {
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
-});
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+};
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Отладочный вывод для проверки значений
+console.log('Firebase Config:', firebaseConfig);
 
 // Проверяем, что все необходимые значения присутствуют
 const missingConfig = Object.entries(firebaseConfig)
-  .filter(([_, value]) => !value)
+  .filter(([key, value]) => !value && key !== 'measurementId') // measurementId может отсутствовать
   .map(([key]) => key);
 
 if (missingConfig.length > 0) {

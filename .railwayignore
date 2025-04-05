@@ -1,0 +1,26 @@
+# Source code and development-only files
+/src
+/public
+
+# Build configs
+tsconfig.json
+tsconfig.node.json
+postcss.config.js
+tailwind.config.js
+vite.config.ts
+
+# Development configs
+.vscode
+.prettierrc
+.eslintrc.cjs
+
+# Git files
+.git
+.gitignore
+
+# Documentation
+README.md
+LICENSE
+
+# Node modules (will be installed during build)
+node_modules 

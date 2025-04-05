@@ -24,11 +24,13 @@ export interface NutritionData {
 }
 
 export interface UserParameters {
+  name?: string;
   age: number;
   gender: 'male' | 'female';
   height: number;
   weight: number;
   activityLevel: 'low' | 'medium' | 'high';
+  goals?: NutritionGoals;
 }
 
 export interface NutritionGoals {

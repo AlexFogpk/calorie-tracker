@@ -58,8 +58,8 @@ const MealLoggingScreen: React.FC<MealLoggingScreenProps> = ({
     setCategoryToAdd(null);
   };
 
-  const categories: MealCategory[] = ['breakfast', 'lunch', 'dinner', 'snacks'];
-  const safeMealsForDate = mealsForDate || { breakfast: [], lunch: [], dinner: [], snacks: [] };
+  const categories: MealCategory[] = ['Завтрак', 'Обед', 'Ужин', 'Перекус'];
+  const safeMealsForDate = mealsForDate || { 'Завтрак': [], 'Обед': [], 'Ужин': [], 'Перекус': [] };
 
   return (
     <div className="mt-6">
