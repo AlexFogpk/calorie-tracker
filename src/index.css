@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: #213547;
+  background-color: #f8f9fa;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color: rgba(255, 255, 255, 0.87);
+    background-color: #111827;
+  }
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.dark {
+  --blue-500: #60A5FA;
+  --green-500: #4ADE80;
+  --yellow-500: #FACC15;
+  --purple-500: #C084FC;
+}
+
+/* Оставляем стили для input-style, которые мы добавили */
+.input-style {
+    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm appearance-none outline-none transition-colors duration-150;
+    @apply focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500; /* Added ring for better focus */
+    /* Light mode default already applied by Tailwind */
+}
+
+/* Dark mode styles for input */
+.dark .input-style {
+   @apply border-gray-600 bg-gray-700 text-white;
+}
+.dark .input-style:focus {
+   @apply focus:border-indigo-500 focus:ring-indigo-500;
+}
+
+/* Hide number input arrows */
+.input-style[type="number"]::-webkit-outer-spin-button,
+.input-style[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.input-style[type="number"] {
+    -moz-appearance: textfield;
+}
