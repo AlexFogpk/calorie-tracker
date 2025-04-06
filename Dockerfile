@@ -2,9 +2,9 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package.json package-lock.json ./
 # Установим необходимые зависимости для сборки
-RUN apk add --no-cache python3 make g++
-# Очистим npm cache и установим зависимости
-RUN npm cache clean --force && npm ci
+RUN apk add --no-cache python3 make g++ git
+# Используем npm install с флагом --legacy-peer-deps для обхода проблем совместимости
+RUN npm cache clean --force && npm install --legacy-peer-deps
 COPY . .
 ARG VITE_FIREBASE_API_KEY
 ARG VITE_FIREBASE_AUTH_DOMAIN
