@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodejs", "gcc", "g++", "python3", "gnumake", "glibc"]
+
+[phases.install]
+cmds = ["npm install"]
+
+[phases.build]
+cmds = ["npm run build:railway"]
+
+[start]
+cmd = "npx serve -s dist" 

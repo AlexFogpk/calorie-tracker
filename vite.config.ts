@@ -12,5 +12,20 @@ export default defineConfig({
   },
   server: {
     host: true,
+  },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
+    minify: 'terser',
+    target: 'esnext',
+    emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor': ['react', 'react-dom', 'firebase', 'framer-motion']
+        }
+      }
+    }
   }
 })

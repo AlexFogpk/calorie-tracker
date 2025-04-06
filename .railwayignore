@@ -9,6 +9,10 @@ postcss.config.js
 tailwind.config.js
 vite.config.ts
 
+# Build outputs (will be recreated during build)
+/dist
+/build
+
 # Development configs
 .vscode
 .prettierrc
