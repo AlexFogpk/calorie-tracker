@@ -31,10 +31,24 @@ ARG VITE_FIREBASE_MEASUREMENT_ID
 RUN npm list > npm-list.txt
 
 # Запускаем сборку с пропуском проверок типов
-RUN npm run build:railway && ls -lah dist
+RUN npm run build:railway
 
-FROM nginx:alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"] 
+# Final production image
+FROM node:20-alpine
+WORKDIR /app
+
+# Copy package files and server
+COPY package.json ./
+COPY server.js ./
+
+# Install only production dependencies
+RUN npm install --only=production
+
+# Copy built app from builder stage
+COPY --from=builder /app/dist ./dist
+
+# Expose port for the application
+EXPOSE 3000
+
+# Run Express server
+CMD ["node", "server.js"] 

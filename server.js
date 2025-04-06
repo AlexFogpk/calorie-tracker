@@ -12,6 +12,11 @@ const PORT = process.env.PORT || 3000;
 // Включаем сжатие для всех ответов
 app.use(compression());
 
+// Добавляем явный маршрут для проверки здоровья приложения
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
 // Статические файлы
 app.use(express.static(join(__dirname, 'dist')));
 
