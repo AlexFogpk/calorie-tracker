@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "vite",
     "build": "npm install && vite build",
-    "build:railway": "CI=false NODE_OPTIONS='--no-warnings' vite build --mode production",
+    "build:railway": "CI=false NODE_OPTIONS='--no-warnings' vite build --mode production --skip-typecheck",
     "serve": "npx serve -s dist",
     "start": "node server.js",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",

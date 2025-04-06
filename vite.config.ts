@@ -7,14 +7,19 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
-      'firebase/app': path.resolve(__dirname, 'node_modules/firebase/app/dist/index.esm.js'),
-      'firebase/auth': path.resolve(__dirname, 'node_modules/firebase/auth/dist/index.esm.js'),
-      'firebase/firestore': path.resolve(__dirname, 'node_modules/firebase/firestore/dist/index.esm.js'),
-      'firebase/storage': path.resolve(__dirname, 'node_modules/firebase/storage/dist/index.esm.js'),
-      'firebase/analytics': path.resolve(__dirname, 'node_modules/firebase/analytics/dist/index.esm.js'),
-      'firebase/functions': path.resolve(__dirname, 'node_modules/firebase/functions/dist/index.esm.js'),
+      '@': path.resolve(__dirname, './src')
     }
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      define: {
+        global: 'globalThis',
+      },
+      supported: {
+        'top-level-await': true
+      },
+    },
+    include: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
   },
   server: {
     host: true,
@@ -29,12 +34,14 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor': ['react', 'react-dom', 'firebase', 'framer-motion']
+          'vendor': ['react', 'react-dom', 'framer-motion']
         }
       }
     },
     commonjsOptions: {
       strictRequires: false,
+      transformMixedEsModules: true,
+      include: [/firebase/, /node_modules/],
     },
   }
 })
