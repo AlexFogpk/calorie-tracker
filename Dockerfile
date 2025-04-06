@@ -1,38 +1,37 @@
-# Build stage
-FROM node:20-alpine AS builder
+# Этап сборки
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Установка зависимостей
+COPY package.json ./
+RUN apk add --no-cache python3 make g++ git
+RUN npm cache clean --force && npm install --no-package-lock
 
-# Install dependencies
-RUN npm install
+# Копируем исходники
+COPY src/ ./src/
+COPY public/ ./public/
+COPY index.html ./
+COPY vite.config.ts ./
+COPY tsconfig.json ./
+COPY tsconfig.node.json ./
+COPY postcss.config.cjs ./
+COPY tailwind.config.js ./
 
-# Copy source code
-COPY . .
+# Сборка
+RUN npm run build:railway && ls -lah dist
 
-# Build the app
-RUN npm run build:railway
+# Финальный слой — Nginx
+FROM nginx:alpine
 
-# Production stage
-FROM node:20-alpine
+# Копируем сборку во внутреннюю папку Nginx
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-WORKDIR /app
+# Копируем nginx.conf (настройки сервера)
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy package files
-COPY package*.json ./
+# Проверим, что index.html действительно скопирован
+RUN cat /usr/share/nginx/html/index.html || echo "index.html not found"
 
-# Install only production dependencies
-RUN npm install --only=production
-
-# Copy built app from builder stage
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/server.js ./
-COPY --from=builder /app/src ./src
-
-# Expose port
-EXPOSE 3000
-
-# Start the app
-CMD ["node", "server.js"] 
+# 🔥 Обязательно указываем, чтобы Nginx не завершался сразу после старта
+CMD ["nginx", "-g", "daemon off;"]
