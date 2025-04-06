@@ -19,7 +19,15 @@ const firebaseConfig = {
 };
 
 // Отладочный вывод для проверки значений
-console.log('Firebase Config:', firebaseConfig);
+console.log('Firebase Config:', {
+  apiKey: firebaseConfig.apiKey ? '***' : undefined,
+  authDomain: firebaseConfig.authDomain,
+  projectId: firebaseConfig.projectId,
+  storageBucket: firebaseConfig.storageBucket ? 'set' : undefined,
+  messagingSenderId: firebaseConfig.messagingSenderId ? 'set' : undefined,
+  appId: firebaseConfig.appId ? 'set' : undefined,
+  measurementId: firebaseConfig.measurementId ? 'set' : undefined
+});
 
 // Проверяем, что все необходимые значения присутствуют
 const missingConfig = Object.entries(firebaseConfig)
@@ -42,7 +50,13 @@ const db = getFirestore(app);
 // const analytics = getAnalytics(app);
 
 // Enable persistence
-setPersistence(auth, browserLocalPersistence).catch(console.error);
+try {
+  setPersistence(auth, browserLocalPersistence).catch((error) => {
+    console.error("Firebase persistence error:", error);
+  });
+} catch (error) {
+  console.error("Firebase persistence setup failed:", error);
+}
 
 // Export the services for use in other components
 export { auth, db };
