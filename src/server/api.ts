@@ -61,11 +61,23 @@ const analyzeMealHandler: RequestHandler = async (req: Request, res: Response): 
     }
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
-          content: 'You are a nutrition expert. Analyze the food description and provide nutritional information in JSON format. Include calories, protein, fat, and carbs in grams. Be accurate and realistic with your estimates.'
+          content: `Ты — диетолог. Пользователь вводит описание блюда или продукта, например:
+    - "2 яблока"
+    - "сметана 1 ст. ложка"
+    - "гречка 100г"
+    
+    Твоя задача:
+    1. Определи количество в граммах
+    2. Рассчитай калории, белки, жиры, углеводы
+    3. Верни JSON-объект с ключами:
+    {name, calories, protein, fat, carbs}
+    
+    ⚠️ Пиши всё числами, без текста. Если не можешь определить — верни:
+    {"name": "", "calories": 0, "protein": 0, "fat": 0, "carbs": 0}`
         },
         {
           role: 'user',
@@ -74,6 +86,7 @@ const analyzeMealHandler: RequestHandler = async (req: Request, res: Response): 
       ],
       response_format: { type: 'json_object' }
     });
+    
 
     const content = response.choices[0].message.content;
     if (!content) {
