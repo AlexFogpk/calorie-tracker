@@ -1,7 +1,10 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci
+COPY package.json package-lock.json ./
+# Установим необходимые зависимости для сборки
+RUN apk add --no-cache python3 make g++
+# Очистим npm cache и установим зависимости
+RUN npm cache clean --force && npm ci
 COPY . .
 ARG VITE_FIREBASE_API_KEY
 ARG VITE_FIREBASE_AUTH_DOMAIN
@@ -10,7 +13,7 @@ ARG VITE_FIREBASE_STORAGE_BUCKET
 ARG VITE_FIREBASE_MESSAGING_SENDER_ID
 ARG VITE_FIREBASE_APP_ID
 ARG VITE_FIREBASE_MEASUREMENT_ID
-RUN npm run build
+RUN npm run build:railway
 
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
