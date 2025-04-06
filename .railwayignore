@@ -1,14 +1,3 @@
-# Source code and development-only files
-/src
-/public
-
-# Build configs
-tsconfig.json
-tsconfig.node.json
-postcss.config.js
-tailwind.config.js
-vite.config.ts
-
 # Build outputs (will be recreated during build)
 /dist
 /build
