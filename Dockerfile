@@ -31,7 +31,7 @@ ARG VITE_FIREBASE_MEASUREMENT_ID
 RUN npm list > npm-list.txt
 
 # Запускаем сборку с пропуском проверок типов
-RUN npm run build:railway
+RUN npm run build:railway && ls -lah dist
 
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
