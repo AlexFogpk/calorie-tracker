@@ -1,30 +1,32 @@
-# Этап сборки фронтенда и сервера
+# ===== Этап 1: Сборка фронтенда и сервера =====
 FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-ARG CACHE_BREAKER=ts-20250407
+# 👇 Кэш-бастинг, чтобы Railway не юзал старое
+ARG CACHE_BREAKER=ts-20250408
 RUN echo "Cache bust: $CACHE_BREAKER"
 
+# Установка зависимостей
 COPY package.json ./
-RUN apk add --no-cache python3 make g++ git
 RUN npm install --no-package-lock
 
-# Копируем весь проект
+# Копируем проект
 COPY . .
 
 # Сборка фронта и сервера
-RUN npm run build:railway
+RUN npm run build:server && npm run build:railway
 
-# Финальный образ на Node.js для запуска Express-сервера
+# ===== Этап 2: Финальный образ =====
 FROM node:18-alpine
 
 WORKDIR /app
 
+# Установка только прод-зависимостей
 COPY package.json ./
 RUN npm install --production
 
-# Копируем собранный фронт и сервер из builder
+# Копируем собранные артефакты
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/dist-server ./dist-server
 

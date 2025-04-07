@@ -1,27 +1,35 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import router from './api.js';
 
-// Load environment variables
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
-// Middleware
+// ✅ Middleware
 app.use(cors());
 app.use(express.json());
 
-// API routes
-app.use('/api', router);
+// ✅ Подключаем статику (Vite build)
+app.use(express.static('dist'));
 
-// ✅ Добавляем healthcheck
-app.get('/health', (_, res) => {
-  res.send('OK');
+// ✅ SPA fallback — всё рендерит index.html
+app.get('/', (_, res) => {
+  res.sendFile(path.resolve('dist', 'index.html'));
 });
 
-// Error handling middleware
+// ✅ API routes
+app.use('/api', router);
+
+// ✅ Healthcheck
+app.get('/health', (_, res) => {
+  res.status(200).send('OK');
+});
+
+// ✅ Error handler
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Server Error:', err);
   res.status(500).json({
@@ -30,8 +38,8 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`API endpoint available at http://localhost:${PORT}/api/analyze-meal`);
+// ✅ Запуск сервера на 0.0.0.0 (Railway требует именно так)
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Server running on http://0.0.0.0:${PORT}`);
+  console.log(`🔍 API: http://0.0.0.0:${PORT}/api/analyze-meal`);
 });
