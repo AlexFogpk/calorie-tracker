@@ -68,13 +68,20 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
       const result = await analyzeFood(name);
       
       if (result.success && result.analysis) {
+        const { calories, protein, fat, carbs, portion, name: foodName } = result.analysis;
+        
         const newValues = {
-          calories: result.analysis.calories.toString(),
-          protein: result.analysis.protein.toString(),
-          fat: result.analysis.fat.toString(),
-          carbs: result.analysis.carbs.toString(),
-          grams: result.analysis.portion.toString()
+          calories: calories.toString(),
+          protein: protein.toString(),
+          fat: fat.toString(),
+          carbs: carbs.toString(),
+          grams: portion.toString()
         };
+        
+        // Обновляем название, если AI предложил более точное
+        if (foodName && foodName !== name) {
+          setName(foodName);
+        }
         
         // Сохраняем исходные значения от AI
         setAiValues(newValues);
@@ -82,10 +89,26 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
         setValues(newValues);
       } else {
         setError(result.error || 'Не удалось проанализировать блюдо');
+        // Очищаем значения при ошибке
+        setValues({
+          calories: '0',
+          protein: '0',
+          fat: '0',
+          carbs: '0',
+          grams: '0'
+        });
       }
     } catch (error) {
       console.error('Error analyzing food:', error);
       setError('Ошибка при анализе блюда');
+      // Очищаем значения при ошибке
+      setValues({
+        calories: '0',
+        protein: '0',
+        fat: '0',
+        carbs: '0',
+        grams: '0'
+      });
     } finally {
       setIsAnalyzing(false);
     }

@@ -1,14 +1,10 @@
 import express from 'express';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import apiRouter from './dist-server/api.js';
+import router from './api.js';
 
+// Load environment variables
 dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,11 +14,11 @@ app.use(cors());
 app.use(express.json());
 
 // API routes
-app.use('/api', apiRouter);
+app.use('/api', router);
 
-// Error handling
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
+// Error handling middleware
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Server Error:', err);
   res.status(500).json({
     error: 'Internal Server Error',
     message: process.env.NODE_ENV === 'development' ? err.message : 'Что-то пошло не так'
@@ -32,4 +28,5 @@ app.use((err, req, res, next) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-}); 
+  console.log(`API endpoint available at http://localhost:${PORT}/api/analyze-meal`);
+});

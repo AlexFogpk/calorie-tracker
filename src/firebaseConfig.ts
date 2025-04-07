@@ -3,22 +3,19 @@ import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// ✅ Используем import.meta.env вместо process.env
 const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY,
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.VITE_FIREBASE_APP_ID,
-  measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Отладочный вывод для проверки значений
+// Отладочный вывод
 console.log('Firebase Config:', {
   apiKey: firebaseConfig.apiKey ? '***' : undefined,
   authDomain: firebaseConfig.authDomain,
@@ -29,9 +26,9 @@ console.log('Firebase Config:', {
   measurementId: firebaseConfig.measurementId ? 'set' : undefined
 });
 
-// Проверяем, что все необходимые значения присутствуют
+// Проверка, что всё есть
 const missingConfig = Object.entries(firebaseConfig)
-  .filter(([key, value]) => !value && key !== 'measurementId') // measurementId может отсутствовать
+  .filter(([key, value]) => !value && key !== 'measurementId')
   .map(([key]) => key);
 
 if (missingConfig.length > 0) {
@@ -39,11 +36,11 @@ if (missingConfig.length > 0) {
   throw new Error(`Missing Firebase configuration: ${missingConfig.join(', ')}`);
 }
 
-// Initialize Firebase
+// Инициализация Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Export the services for use in other components
+// Экспорт
 export { app, analytics, db, auth };
