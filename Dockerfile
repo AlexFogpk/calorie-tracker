@@ -3,6 +3,10 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
+# Всегда инвалидация кэша (по времени)
+ARG CACHE_BREAKER=dev
+RUN echo "Cache bust: $CACHE_BREAKER"
+
 # Установка зависимостей
 COPY package.json ./
 RUN apk add --no-cache python3 make g++ git
@@ -31,8 +35,8 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Добавляем логирование nginx для отладки
-RUN echo "access_log /var/log/nginx/access.log;" >> /etc/nginx/nginx.conf && \
-    echo "error_log /var/log/nginx/error.log debug;" >> /etc/nginx/nginx.conf
+#RUN echo "access_log /var/log/nginx/access.log;" >> /etc/nginx/nginx.conf && \
+#    echo "error_log /var/log/nginx/error.log debug;" >> /etc/nginx/nginx.conf
 
 # Проверка, что index.html есть
 RUN cat /usr/share/nginx/html/index.html || echo "⚠️ index.html не найден!"
