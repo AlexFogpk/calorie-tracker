@@ -4,8 +4,9 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 # Всегда инвалидация кэша (по времени)
-ARG CACHE_BREAKER=dev
-RUN echo "Cache bust: $CACHE_BREAKER"
+ARG CACHE_BREAKER=ts-20250407
+RUN echo "Cache break: $CACHE_BREAKER"
+
 
 # Установка зависимостей
 COPY package.json ./
