@@ -7,17 +7,18 @@
     "node": ">=18.x <=20.x"
   },
   "scripts": {
-    "dev": "vite",
-    "build:server": "tsc -p tsconfig.server.json",
-    "server": "npm run build:server && node dist-server/index.js",
-    "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
-    "build": "tsc && vite build",
-    "build:railway": "CI=false NODE_OPTIONS='--no-warnings' vite build --mode production",
-    "serve": "npx serve -s dist",
-    "start": "node server.js",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+  "dev": "vite",
+  "build:server": "tsc -p tsconfig.server.json",
+  "server": "npm run build:server && node dist-server/index.js",
+  "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
+  "build": "tsc && vite build",
+  "build:railway": "npm run build:server && vite build --mode production",
+  "serve": "npx serve -s dist",
+  "start": "node dist-server/index.js",
+  "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+  "preview": "vite preview"
   },
+
   "dependencies": {
     "@firebase/analytics": "^0.10.12",
     "@firebase/auth": "^1.10.0",
