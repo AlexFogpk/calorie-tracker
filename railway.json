@@ -12,5 +12,8 @@
     "healthcheckPath": "/health",
     "healthcheckTimeout": 10,
     "healthcheckInterval": 30
+  },
+  "env": {
+    "PORT": "80"
   }
-} 
+}
