@@ -21,6 +21,12 @@ const NutritionRings: React.FC<NutritionRingsProps> = ({
   carbs,
   goals
 }) => {
+  // Функция для безопасного форматирования числа с одним знаком после запятой
+  const formatNumber = (value: number | null | undefined): string => {
+    if (value === null || value === undefined || isNaN(value)) return '0.0';
+    return (Math.round(value * 10) / 10).toFixed(1);
+  };
+
   const rings = [
     {
       value: calories,
@@ -28,7 +34,8 @@ const NutritionRings: React.FC<NutritionRingsProps> = ({
       label: 'ккал',
       color: '#FF3B30', // Apple Red
       name: 'calories',
-      unit: 'ккал'
+      unit: 'ккал',
+      formatted: formatNumber(calories)
     },
     {
       value: protein,
@@ -36,7 +43,8 @@ const NutritionRings: React.FC<NutritionRingsProps> = ({
       label: 'белки',
       color: '#32ADE6', // Apple Blue
       name: 'protein',
-      unit: 'г'
+      unit: 'г',
+      formatted: formatNumber(protein)
     },
     {
       value: fat,
@@ -44,7 +52,8 @@ const NutritionRings: React.FC<NutritionRingsProps> = ({
       label: 'жиры',
       color: '#AF52DE', // Apple Purple
       name: 'fat',
-      unit: 'г'
+      unit: 'г',
+      formatted: formatNumber(fat)
     },
     {
       value: carbs,
@@ -52,7 +61,8 @@ const NutritionRings: React.FC<NutritionRingsProps> = ({
       label: 'углеводы',
       color: '#5E5CE6', // Apple Indigo
       name: 'carbs',
-      unit: 'г'
+      unit: 'г',
+      formatted: formatNumber(carbs)
     }
   ];
 
@@ -67,52 +77,44 @@ const NutritionRings: React.FC<NutritionRingsProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="bg-white rounded-2xl shadow-md p-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {rings.map((ring) => {
-          const progress = Math.min(100, (ring.value / ring.goal) * 100);
-          const isComplete = progress >= 100;
-          
+          // Безопасный расчет прогресса
+          const progress = ring.goal > 0 ? Math.min(100, (ring.value / ring.goal) * 100) : 0;
+
           return (
             <div key={ring.name} className="flex flex-col items-center">
-              <div className="relative w-[100px] h-[100px]">
-                {/* Background circle */}
+              <div className="relative w-24 h-24">
+                {/* Фоновый круг */}
                 <svg className="w-full h-full -rotate-90">
                   <circle
-                    cx="50"
-                    cy="50"
-                    r="45"
-                    fill="none"
-                    stroke={`${ring.color}20`}
+                    cx="48"
+                    cy="48"
+                    r="44"
+                    stroke="currentColor"
                     strokeWidth="8"
-                    strokeLinecap="round"
-                  />
-                  {/* Progress circle */}
-                  <motion.circle
-                    cx="50"
-                    cy="50"
-                    r="45"
                     fill="none"
+                    className="text-gray-100"
+                  />
+                  {/* Прогресс */}
+                  <circle
+                    cx="48"
+                    cy="48"
+                    r="44"
                     stroke={ring.color}
                     strokeWidth="8"
+                    fill="none"
                     strokeLinecap="round"
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: progress / 100 }}
-                    transition={{ duration: 1, ease: "easeInOut" }}
+                    strokeDasharray={`${2 * Math.PI * 44 * progress / 100} ${2 * Math.PI * 44}`}
+                    style={{
+                      transition: 'stroke-dasharray 0.5s ease'
+                    }}
                   />
                 </svg>
-                {/* Pulsing background for completed rings */}
-                {isComplete && (
-                  <motion.div
-                    className={`absolute inset-0 rounded-full ${ring.name === 'fat' ? 'bg-red-500' : 'bg-opacity-20'}`}
-                    style={{ backgroundColor: ring.name === 'fat' ? undefined : ring.color }}
-                    animate={pulseAnimation}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                  />
-                )}
-                {/* Center text */}
+
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-lg font-semibold text-gray-800">{ring.value}</span>
+                  <span className="text-lg font-semibold text-gray-800">{ring.formatted}</span>
                   <span className="text-xs text-gray-500">{ring.unit}</span>
                 </div>
               </div>
