@@ -40,7 +40,7 @@ export async function analyzeMeal(description: string): Promise<AiSuggestion> {
     // Round all numeric values
     const roundedData: NutritionData = {
       name: nutritionData.name,
-      weight: Math.round(nutritionData.weight || 100),
+      weight: Math.round(nutritionData.weight),
       calories: Math.round(nutritionData.calories),
       protein: Math.round(nutritionData.protein),
       fat: Math.round(nutritionData.fat),
