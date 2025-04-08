@@ -42,6 +42,7 @@ export interface NutritionGoals {
 
 export interface AiSuggestion {
   name: string;
+  weight: number;
   calories: number;
   protein: number;
   fat: number;

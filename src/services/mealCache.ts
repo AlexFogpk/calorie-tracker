@@ -1,6 +1,12 @@
 import { AiSuggestion } from '../types';
 
-interface CachedMeal extends AiSuggestion {
+interface CachedMeal {
+  name: string;
+  weight: number;
+  calories: number;
+  protein: number;
+  fat: number;
+  carbs: number;
   timestamp: number;
 }
 
@@ -81,10 +87,15 @@ class MealCacheService {
     return null;
   }
 
-  cacheMeal(description: string, result: AiSuggestion) {
+  cacheMeal(description: string, data: CachedMeal) {
     const normalizedDesc = description.toLowerCase().trim();
     const cachedMeal: CachedMeal = {
-      ...result,
+      name: data.name,
+      weight: data.weight,
+      calories: data.calories,
+      protein: data.protein,
+      fat: data.fat,
+      carbs: data.carbs,
       timestamp: Date.now()
     };
     
