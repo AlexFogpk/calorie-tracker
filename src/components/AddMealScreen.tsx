@@ -6,7 +6,7 @@ import { doc, addDoc, collection } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useAuth } from '../hooks/useAuth';
 import { Meal, MealCategory, MEAL_CATEGORIES } from '../types';
-import { analyzeFood } from '../api/analyzeFood';
+import { analyzeMeal } from '@/api/analyze-meal';
 
 interface AddMealScreenProps {
   onClose: () => void;
@@ -73,39 +73,25 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
     setError(null);
 
     try {
-      const result = await analyzeFood(name);
+      const result = await analyzeMeal(name);
       
-      if (result.success && result.analysis) {
-        const { calories, protein, fat, carbs, portion, name: foodName } = result.analysis;
-        
-        const newValues = {
-          calories: calories.toString(),
-          protein: protein.toString(),
-          fat: fat.toString(),
-          carbs: carbs.toString(),
-          grams: portion.toString()
-        };
-        
-        // Обновляем название, если AI предложил более точное
-        if (foodName && foodName !== name) {
-          setName(foodName);
-        }
-        
-        // Сохраняем исходные значения от AI
-        setAiValues(newValues);
-        // Устанавливаем текущие значения
-        setValues(newValues);
-      } else {
-        setError(result.error || 'Не удалось проанализировать блюдо');
-        // Очищаем значения при ошибке
-        setValues({
-          calories: '0',
-          protein: '0',
-          fat: '0',
-          carbs: '0',
-          grams: '0'
-        });
+      const newValues = {
+        calories: result.calories.toString(),
+        protein: result.protein.toString(),
+        fat: result.fat.toString(),
+        carbs: result.carbs.toString(),
+        grams: result.weight.toString()
+      };
+      
+      // Обновляем название, если AI предложил более точное
+      if (result.name && result.name !== name) {
+        setName(result.name);
       }
+      
+      // Сохраняем исходные значения от AI
+      setAiValues(newValues);
+      // Устанавливаем текущие значения
+      setValues(newValues);
     } catch (error) {
       console.error('Error analyzing food:', error);
       setError('Ошибка при анализе блюда');
