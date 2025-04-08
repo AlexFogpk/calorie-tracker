@@ -43,6 +43,7 @@ function validateAiResponse(data: any): data is NutritionData {
   }
 
   const limits = {
+    weight: 2000,    // максимальный вес в граммах
     calories: 5000,
     protein: 200,
     fat: 200,

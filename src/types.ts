@@ -17,9 +17,11 @@ export interface Meal {
 }
 
 export interface NutritionData {
+  name: string;
+  weight: number;
   calories: number;
-  proteins: number;
-  fats: number;
+  protein: number;
+  fat: number;
   carbs: number;
 }
 

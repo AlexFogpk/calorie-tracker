@@ -49,8 +49,12 @@ export async function analyzeMeal(description: string): Promise<AiSuggestion> {
 
     console.log('Successfully processed meal data:', roundedData);
 
-    // Cache the valid result
-    mealCacheService.cacheMeal(description, roundedData);
+    // Cache the valid result with timestamp
+    mealCacheService.cacheMeal(description, {
+      ...roundedData,
+      timestamp: Date.now()
+    });
+    
     // Add to history
     mealCacheService.addToHistory(description, roundedData);
 
