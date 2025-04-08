@@ -192,7 +192,11 @@ const analyzeMealHandler: express.RequestHandler = async (req, res) => {
     let nutritionData: unknown;
     try {
       nutritionData = JSON.parse(content);
-      console.log('Parsed nutrition data:', nutritionData);
+      console.log('Raw AI response content:', content);
+      console.log('Parsed nutrition data with weight:', {
+        weight: (nutritionData as any).weight,
+        fullData: nutritionData
+      });
     } catch (error) {
       console.error('Failed to parse OpenAI response:', error);
       console.error('Raw content:', content);
@@ -210,6 +214,7 @@ const analyzeMealHandler: express.RequestHandler = async (req, res) => {
 
     if (!validateAiResponse(nutritionData)) {
       console.error('Invalid nutrition data format:', {
+        weight: (nutritionData as any).weight,
         data: nutritionData,
         validationError: 'Response does not match expected schema'
       });

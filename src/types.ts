@@ -18,7 +18,7 @@ export interface Meal {
 
 export interface NutritionData {
   name: string;
-  weight: number;
+  weight: number;  // масса в граммах
   calories: number;
   protein: number;
   fat: number;
@@ -44,7 +44,7 @@ export interface NutritionGoals {
 
 export interface AiSuggestion {
   name: string;
-  weight: number;
+  weight: number;  // масса в граммах
   calories: number;
   protein: number;
   fat: number;

@@ -36,6 +36,8 @@ export async function analyzeMeal(description: string): Promise<AiSuggestion> {
     }
 
     const nutritionData = await response.json();
+    console.log('Raw nutrition data from API:', nutritionData);
+    console.log('Weight from API:', nutritionData.weight);
 
     // Round all numeric values
     const roundedData: NutritionData = {
@@ -47,7 +49,11 @@ export async function analyzeMeal(description: string): Promise<AiSuggestion> {
       carbs: Math.round(nutritionData.carbs)
     };
 
-    console.log('Successfully processed meal data:', roundedData);
+    console.log('Rounded data with weight:', {
+      originalWeight: nutritionData.weight,
+      roundedWeight: roundedData.weight,
+      fullData: roundedData
+    });
 
     // Cache the valid result with timestamp
     mealCacheService.cacheMeal(description, {
