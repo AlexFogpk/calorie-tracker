@@ -28,8 +28,6 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
   const [isLoading, setIsLoading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Состояние для текущих значений
   const [values, setValues] = useState<NutritionValues>({
     calories: '',
     protein: '',
@@ -37,9 +35,19 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
     carbs: '',
     grams: ''
   });
-
-  // Состояние для хранения исходных значений от AI
   const [aiValues, setAiValues] = useState<NutritionValues | null>(null);
+
+  // Функция валидации числовых значений
+  const validateNumber = (value: string): number | null => {
+    const parsed = parseFloat(value.replace(',', '.'));
+    return isNaN(parsed) ? null : parsed;
+  };
+
+  // Обработчик изменения числового поля
+  const handleNumberChange = (field: keyof NutritionValues) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(',', '.');
+    setValues(prev => ({ ...prev, [field]: value }));
+  };
 
   // Функция для пересчета значений при изменении граммовки
   const recalculateValues = (newGrams: string) => {
@@ -122,6 +130,22 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Валидация всех числовых полей
+    const validatedValues = {
+      calories: validateNumber(values.calories),
+      protein: validateNumber(values.protein),
+      fat: validateNumber(values.fat),
+      carbs: validateNumber(values.carbs),
+      grams: validateNumber(values.grams)
+    };
+
+    // Проверка на null значения
+    if (Object.values(validatedValues).some(v => v === null)) {
+      setError('Пожалуйста, введите корректные числовые значения');
+      return;
+    }
+
     if (!user) return;
 
     setIsLoading(true);
@@ -130,11 +154,11 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
     try {
       const mealData: Omit<Meal, 'id'> = {
         name: name.trim(),
-        calories: parseInt(values.calories) || 0,
-        protein: parseInt(values.protein) || 0,
-        fat: parseInt(values.fat) || 0,
-        carbs: parseInt(values.carbs) || 0,
-        grams: parseInt(values.grams) || 0,
+        calories: validatedValues.calories || 0,
+        protein: validatedValues.protein || 0,
+        fat: validatedValues.fat || 0,
+        carbs: validatedValues.carbs || 0,
+        grams: validatedValues.grams || 0,
         category,
         timestamp: selectedDate
       };
@@ -220,45 +244,21 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
             </select>
           </div>
 
-          <div>
-            <label htmlFor="grams" className="block text-sm font-medium text-gray-800 mb-1">
-              Граммы
-            </label>
-            <input
-              type="number"
-              id="grams"
-              inputMode="numeric"
-              value={values.grams}
-              onChange={(e) => {
-                const newGrams = e.target.value;
-                setValues(prev => ({ ...prev, grams: newGrams }));
-                if (aiValues) {
-                  recalculateValues(newGrams);
-                }
-              }}
-              onFocus={handleInputFocus}
-              placeholder="0"
-              className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              min="0"
-              required
-            />
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label htmlFor="calories" className="block text-sm font-medium text-gray-800 mb-1">
                 Калории
               </label>
               <input
-                type="number"
+                type="text"
                 id="calories"
-                inputMode="numeric"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
                 value={values.calories}
-                onChange={(e) => setValues(prev => ({ ...prev, calories: e.target.value }))}
+                onChange={handleNumberChange('calories')}
                 onFocus={handleInputFocus}
                 placeholder="0"
                 className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                min="0"
                 required
               />
             </div>
@@ -268,15 +268,15 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
                 Белки (г)
               </label>
               <input
-                type="number"
+                type="text"
                 id="protein"
-                inputMode="numeric"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
                 value={values.protein}
-                onChange={(e) => setValues(prev => ({ ...prev, protein: e.target.value }))}
+                onChange={handleNumberChange('protein')}
                 onFocus={handleInputFocus}
                 placeholder="0"
                 className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                min="0"
                 required
               />
             </div>
@@ -286,15 +286,15 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
                 Жиры (г)
               </label>
               <input
-                type="number"
+                type="text"
                 id="fat"
-                inputMode="numeric"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
                 value={values.fat}
-                onChange={(e) => setValues(prev => ({ ...prev, fat: e.target.value }))}
+                onChange={handleNumberChange('fat')}
                 onFocus={handleInputFocus}
                 placeholder="0"
                 className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                min="0"
                 required
               />
             </div>
@@ -304,15 +304,33 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
                 Углеводы (г)
               </label>
               <input
-                type="number"
+                type="text"
                 id="carbs"
-                inputMode="numeric"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
                 value={values.carbs}
-                onChange={(e) => setValues(prev => ({ ...prev, carbs: e.target.value }))}
+                onChange={handleNumberChange('carbs')}
                 onFocus={handleInputFocus}
                 placeholder="0"
                 className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                min="0"
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="grams" className="block text-sm font-medium text-gray-800 mb-1">
+                Вес (г)
+              </label>
+              <input
+                type="text"
+                id="grams"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                value={values.grams}
+                onChange={handleNumberChange('grams')}
+                onFocus={handleInputFocus}
+                placeholder="0"
+                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
             </div>
