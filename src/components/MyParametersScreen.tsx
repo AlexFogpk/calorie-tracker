@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { UserParams, ActivityLevel, Goal } from '@/types';
+import { UserParams, ActivityLevel, Goal, NutritionData } from '@/types';
 import { calculateNutritionGoals } from '@/utils/calculateNutritionGoals';
 import { formatNumber } from '@/utils/formatNumber';
 import MyParametersForm from './MyParametersForm';
-import type { NutritionData } from '@/types';
 // Import shared types if needed (or define locally if only used here)
 
 interface MyParametersScreenProps {
@@ -25,7 +24,7 @@ interface FormData {
 const ACTIVITY_LEVELS: { value: ActivityLevel; label: string }[] = [
   { value: 'sedentary', label: 'Сидячий образ жизни' },
   { value: 'light', label: 'Легкая активность (1-3 раза в неделю)' },
-  { value: 'moderate', label: 'Умеренная активность (3-5 раз в неделю)' },
+  { value: 'moderately_active', label: 'Умеренная активность (3-5 раз в неделю)' },
   { value: 'active', label: 'Высокая активность (6-7 раз в неделю)' },
   { value: 'very_active', label: 'Очень высокая активность (2 раза в день)' }
 ];
@@ -33,7 +32,7 @@ const ACTIVITY_LEVELS: { value: ActivityLevel; label: string }[] = [
 const GOALS: { value: Goal; label: string }[] = [
   { value: 'weight_loss', label: 'Похудение' },
   { value: 'maintenance', label: 'Поддержание веса' },
-  { value: 'weight_gain', label: 'Набор массы' }
+  { value: 'muscle_gain', label: 'Набор массы' }
 ];
 
 const MyParametersScreen: React.FC<MyParametersScreenProps> = ({ onGoalsCalculated }) => {
@@ -43,7 +42,7 @@ const MyParametersScreen: React.FC<MyParametersScreenProps> = ({ onGoalsCalculat
     age: 25,
     height: 170,
     weight: 70,
-    activityLevel: 'moderate',
+    activityLevel: 'moderately_active',
     goal: 'maintenance',
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -62,6 +61,8 @@ const MyParametersScreen: React.FC<MyParametersScreenProps> = ({ onGoalsCalculat
 
     try {
       await updateUserParams(formData);
+      const goals = calculateNutritionGoals(formData);
+      onGoalsCalculated(goals);
     } catch (err) {
       setError('Failed to update parameters. Please try again.');
     } finally {
@@ -147,11 +148,11 @@ const MyParametersScreen: React.FC<MyParametersScreenProps> = ({ onGoalsCalculat
               onChange={handleChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             >
-              <option value="sedentary">Sedentary</option>
-              <option value="light">Light</option>
-              <option value="moderate">Moderate</option>
-              <option value="active">Active</option>
-              <option value="very">Very Active</option>
+              {ACTIVITY_LEVELS.map(level => (
+                <option key={level.value} value={level.value}>
+                  {level.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -163,9 +164,11 @@ const MyParametersScreen: React.FC<MyParametersScreenProps> = ({ onGoalsCalculat
               onChange={handleChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             >
-              <option value="weight_loss">Weight Loss</option>
-              <option value="maintenance">Maintenance</option>
-              <option value="muscle_gain">Muscle Gain</option>
+              {GOALS.map(goal => (
+                <option key={goal.value} value={goal.value}>
+                  {goal.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>

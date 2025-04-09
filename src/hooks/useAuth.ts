@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { auth } from '../firebaseConfig';
-import { onAuthStateChanged, signInAnonymously, User, browserLocalPersistence, setPersistence } from 'firebase/auth';
-import { UserParams } from '@/types';
+import { onAuthStateChanged, signInAnonymously, User as FirebaseUser, browserLocalPersistence, setPersistence } from 'firebase/auth';
+import { UserParams, User } from '@/types';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -24,16 +24,16 @@ export const useAuth = () => {
         // Устанавливаем локальную персистентность
         await setPersistence(auth, browserLocalPersistence);
         
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
           try {
-            if (!user) {
+            if (!firebaseUser) {
               console.log('Выполняем анонимный вход...');
               const credential = await signInAnonymously(auth);
               console.log('Анонимный вход успешен:', credential.user.uid);
-              setUser(credential.user);
+              setUser({ uid: credential.user.uid });
             } else {
-              console.log('Пользователь аутентифицирован:', user.uid);
-              setUser(user);
+              console.log('Пользователь аутентифицирован:', firebaseUser.uid);
+              setUser({ uid: firebaseUser.uid });
             }
           } catch (error) {
             console.error('Ошибка аутентификации:', error);

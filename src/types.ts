@@ -24,8 +24,8 @@ export interface NutritionData {
 }
 
 export type Gender = 'male' | 'female';
-export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very';
-export type Goal = 'weight_loss' | 'maintenance' | 'muscle_gain';
+export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very' | 'very_active' | 'extra_active';
+export type Goal = 'weight_loss' | 'maintenance' | 'muscle_gain' | 'weight_gain';
 
 export interface UserParameters {
   gender: Gender;

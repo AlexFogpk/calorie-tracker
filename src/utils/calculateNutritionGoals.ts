@@ -1,33 +1,36 @@
 import { UserParams, NutritionData } from '@/types';
 
 export function calculateNutritionGoals(params: UserParams): NutritionData {
-  // Calculate BMR using Harris-Benedict equation
+  // Mifflin-St Jeor Equation
   const bmr = params.gender === 'male'
-    ? 88.362 + (13.397 * params.weight) + (4.799 * params.height) - (5.677 * params.age)
-    : 447.593 + (9.247 * params.weight) + (3.098 * params.height) - (4.330 * params.age);
+    ? 10 * params.weight + 6.25 * params.height - 5 * params.age + 5
+    : 10 * params.weight + 6.25 * params.height - 5 * params.age - 161;
 
-  // Activity multiplier
-  const activityMultiplier = {
+  // Activity multipliers
+  const activityMultipliers = {
     sedentary: 1.2,
     light: 1.375,
-    moderate: 1.55,
+    moderately_active: 1.55,
     active: 1.725,
-    very: 1.9
+    very: 1.9,
+    very_active: 1.9,
+    extra_active: 1.9
   }[params.activityLevel];
 
-  // Calculate maintenance calories
-  const maintenanceCalories = Math.round(bmr * activityMultiplier);
-
-  // Adjust calories based on goal
-  const calories = Math.round(maintenanceCalories * {
+  // Goal adjustments
+  const goalAdjustment = {
     weight_loss: 0.85,
-    maintenance: 1,
-    muscle_gain: 1.15
-  }[params.goal]);
+    maintenance: 1.0,
+    muscle_gain: 1.15,
+    weight_gain: 1.15
+  }[params.goal];
+
+  // Calculate total calories
+  const calories = Math.round(bmr * activityMultipliers * goalAdjustment);
 
   // Calculate macronutrients
-  const protein = Math.round(params.weight * 2.2); // 2.2g per kg of body weight
-  const fat = Math.round(calories * 0.25 / 9); // 25% of calories from fat
+  const protein = Math.round(params.weight * 1.8); // 1.8g per kg of body weight
+  const fat = Math.round(params.weight * 1); // 1g per kg of body weight
   const carbs = Math.round((calories - (protein * 4) - (fat * 9)) / 4); // Remaining calories from carbs
 
   return {
