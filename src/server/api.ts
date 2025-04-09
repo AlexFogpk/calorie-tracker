@@ -2,6 +2,7 @@ import express from 'express';
 import OpenAI from 'openai';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { NutritionData, AIAnalysis } from '@/types';
 
 dotenv.config();
 
@@ -17,33 +18,18 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-interface NutritionData {
-  name: string;
-  weight: number;
-  calories: number;
-  protein: number;
-  fat: number;
-  carbs: number;
-}
-
 // Validate AI response
 function validateAiResponse(data: any): data is NutritionData {
   if (!data || typeof data !== 'object') return false;
 
-  const requiredFields = ['name', 'weight', 'calories', 'protein', 'fat', 'carbs'];
+  const requiredFields = ['calories', 'protein', 'fat', 'carbs'];
   
   for (const field of requiredFields) {
     if (!(field in data)) return false;
-    
-    if (field === 'name') {
-      if (typeof data[field] !== 'string' || !data[field].trim()) return false;
-    } else {
-      if (typeof data[field] !== 'number' || data[field] < 0) return false;
-    }
+    if (typeof data[field] !== 'number' || data[field] < 0) return false;
   }
 
   const limits = {
-    weight: 2000,    // максимальный вес в граммах
     calories: 5000,
     protein: 200,
     fat: 200,
