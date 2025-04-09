@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { IoClose } from 'react-icons/io5';
 import { FaRobot } from 'react-icons/fa';
@@ -7,65 +7,86 @@ import { db } from '../firebaseConfig';
 import { useAuth } from '../hooks/useAuth';
 import { Meal, MealCategory, MEAL_CATEGORIES } from '../types';
 import { analyzeMeal } from '@/api/analyze-meal';
+import { formatNumber } from '@/utils/formatNumber';
 
 interface AddMealScreenProps {
   onClose: () => void;
-  selectedDate: Date;
+  onAddMeal: (meal: Meal) => void;
 }
 
-interface NutritionValues {
-  calories: string;
-  protein: string;
-  fat: string;
-  carbs: string;
-  grams: string;
-}
-
-const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) => {
+const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal }) => {
   const { user } = useAuth();
   const [name, setName] = useState('');
-  const [category, setCategory] = useState<MealCategory>(MEAL_CATEGORIES[0]);
+  const [category, setCategory] = useState<MealCategory>('Завтрак');
   const [isLoading, setIsLoading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [values, setValues] = useState<NutritionValues>({
+  const [values, setValues] = useState({
     calories: '',
     protein: '',
     fat: '',
     carbs: '',
     grams: ''
   });
-  const [aiValues, setAiValues] = useState<NutritionValues | null>(null);
+  const [aiValues, setAiValues] = useState<{
+    calories: number;
+    protein: number;
+    fat: number;
+    carbs: number;
+    grams: number;
+  } | null>(null);
+  const [aiGenerated, setAiGenerated] = useState(false);
+  const [originalWeight, setOriginalWeight] = useState<number | null>(null);
 
-  // Функция валидации числовых значений
   const validateNumber = (value: string): number | null => {
-    const parsed = parseFloat(value.replace(',', '.'));
-    return isNaN(parsed) ? null : parsed;
+    const num = parseFloat(value.replace(',', '.'));
+    return isNaN(num) ? null : num;
   };
 
-  // Обработчик изменения числового поля
-  const handleNumberChange = (field: keyof NutritionValues) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(',', '.');
-    setValues(prev => ({ ...prev, [field]: value }));
+  const handleNumberChange = (value: string, field: keyof typeof values) => {
+    // Заменяем запятую на точку
+    const normalizedValue = value.replace(',', '.');
+    // Проверяем, что значение соответствует формату числа
+    if (/^\d*[.,]?\d*$/.test(normalizedValue)) {
+      setValues(prev => ({ ...prev, [field]: normalizedValue }));
+
+      // Если это поле веса и включен AI режим, пересчитываем значения
+      if (field === 'grams' && aiGenerated && originalWeight) {
+        const newWeight = validateNumber(normalizedValue);
+        if (newWeight !== null && aiValues) {
+          const ratio = newWeight / originalWeight;
+          const newValues = {
+            calories: formatNumber(aiValues.calories * ratio),
+            protein: formatNumber(aiValues.protein * ratio),
+            fat: formatNumber(aiValues.fat * ratio),
+            carbs: formatNumber(aiValues.carbs * ratio),
+            grams: normalizedValue
+          };
+
+          console.log('Пересчет значений:', {
+            исходные: aiValues,
+            новыйВес: newWeight,
+            результат: {
+              calories: aiValues.calories * ratio,
+              protein: aiValues.protein * ratio,
+              fat: aiValues.fat * ratio,
+              carbs: aiValues.carbs * ratio
+            }
+          });
+
+          setValues(newValues);
+        }
+      } else if (field !== 'grams' && aiGenerated) {
+        // Если изменено любое другое поле, сбрасываем AI режим
+        setAiGenerated(false);
+        setOriginalWeight(null);
+      }
+    }
   };
 
-  // Функция для пересчета значений при изменении граммовки
-  const recalculateValues = (newGrams: string) => {
-    if (!aiValues || !newGrams || parseFloat(newGrams) === 0) return;
-
-    const ratio = parseFloat(newGrams) / parseFloat(aiValues.grams);
-    setValues({
-      calories: Math.round(parseFloat(aiValues.calories) * ratio).toString(),
-      protein: Math.round(parseFloat(aiValues.protein) * ratio).toString(),
-      fat: Math.round(parseFloat(aiValues.fat) * ratio).toString(),
-      carbs: Math.round(parseFloat(aiValues.carbs) * ratio).toString(),
-      grams: newGrams
-    });
-  };
-
-  const handleAIAnalysis = async () => {
+  const handleAnalyze = async () => {
     if (!name.trim()) {
-      setError('Введите название блюда для анализа');
+      setError('Введите название блюда');
       return;
     }
 
@@ -74,86 +95,76 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
 
     try {
       const result = await analyzeMeal(name);
-      
-      const newValues = {
-        calories: result.calories.toString(),
-        protein: result.protein.toString(),
-        fat: result.fat.toString(),
-        carbs: result.carbs.toString(),
-        grams: result.weight.toString()
-      };
-      
-      // Обновляем название, если AI предложил более точное
-      if (result.name && result.name !== name) {
-        setName(result.name);
+      if (result.success && result.analysis) {
+        const { calories, protein, fat, carbs, portion } = result.analysis;
+        const formattedValues = {
+          calories: formatNumber(calories),
+          protein: formatNumber(protein),
+          fat: formatNumber(fat),
+          carbs: formatNumber(carbs),
+          grams: formatNumber(portion)
+        };
+        
+        setValues(formattedValues);
+        setAiValues({
+          calories,
+          protein,
+          fat,
+          carbs,
+          grams: portion
+        });
+        setAiGenerated(true);
+        setOriginalWeight(portion);
+      } else {
+        setError(result.error || 'Не удалось проанализировать блюдо');
       }
-      
-      // Сохраняем исходные значения от AI
-      setAiValues(newValues);
-      // Устанавливаем текущие значения
-      setValues(newValues);
-    } catch (error) {
-      console.error('Error analyzing food:', error);
-      setError('Ошибка при анализе блюда');
-      // Очищаем значения при ошибке
-      setValues({
-        calories: '0',
-        protein: '0',
-        fat: '0',
-        carbs: '0',
-        grams: '0'
-      });
+    } catch (err) {
+      setError('Произошла ошибка при анализе');
+      console.error('Ошибка анализа:', err);
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    if (e.target.value === '0') {
-      e.target.value = '';
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Валидация всех числовых полей
-    const validatedValues = {
-      calories: validateNumber(values.calories),
-      protein: validateNumber(values.protein),
-      fat: validateNumber(values.fat),
-      carbs: validateNumber(values.carbs),
-      grams: validateNumber(values.grams)
-    };
-
-    // Проверка на null значения
-    if (Object.values(validatedValues).some(v => v === null)) {
-      setError('Пожалуйста, введите корректные числовые значения');
+    if (!name.trim()) {
+      setError('Введите название блюда');
       return;
     }
 
-    if (!user) return;
+    const calories = validateNumber(values.calories);
+    const protein = validateNumber(values.protein);
+    const fat = validateNumber(values.fat);
+    const carbs = validateNumber(values.carbs);
+    const grams = validateNumber(values.grams);
+
+    if (calories === null || protein === null || fat === null || carbs === null || grams === null) {
+      setError('Пожалуйста, введите корректные числовые значения');
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const mealData: Omit<Meal, 'id'> = {
+      const meal: Meal = {
+        id: Date.now().toString(),
         name: name.trim(),
-        calories: validatedValues.calories || 0,
-        protein: validatedValues.protein || 0,
-        fat: validatedValues.fat || 0,
-        carbs: validatedValues.carbs || 0,
-        grams: validatedValues.grams || 0,
+        calories,
+        protein,
+        fat,
+        carbs,
+        grams,
         category,
-        timestamp: selectedDate
+        timestamp: new Date()
       };
 
-      await addDoc(collection(db, `users/${user.uid}/meals`), mealData);
+      await onAddMeal(meal);
       onClose();
-    } catch (error) {
-      console.error('Error adding meal:', error);
-      setError('Произошла ошибка при сохранении. Попробуйте еще раз.');
+    } catch (err) {
+      setError('Произошла ошибка при сохранении');
+      console.error('Ошибка сохранения:', err);
     } finally {
       setIsLoading(false);
     }
@@ -200,8 +211,8 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
               />
               <motion.button
                 type="button"
-                onClick={handleAIAnalysis}
-                disabled={isAnalyzing}
+                onClick={handleAnalyze}
+                disabled={isAnalyzing || !name.trim()}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center gap-2"
@@ -241,9 +252,7 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
                 inputMode="decimal"
                 pattern="[0-9]*[.,]?[0-9]*"
                 value={values.calories}
-                onChange={handleNumberChange('calories')}
-                onFocus={handleInputFocus}
-                placeholder="0"
+                onChange={(e) => handleNumberChange(e.target.value, 'calories')}
                 className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
@@ -259,9 +268,7 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
                 inputMode="decimal"
                 pattern="[0-9]*[.,]?[0-9]*"
                 value={values.protein}
-                onChange={handleNumberChange('protein')}
-                onFocus={handleInputFocus}
-                placeholder="0"
+                onChange={(e) => handleNumberChange(e.target.value, 'protein')}
                 className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
@@ -277,9 +284,7 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
                 inputMode="decimal"
                 pattern="[0-9]*[.,]?[0-9]*"
                 value={values.fat}
-                onChange={handleNumberChange('fat')}
-                onFocus={handleInputFocus}
-                placeholder="0"
+                onChange={(e) => handleNumberChange(e.target.value, 'fat')}
                 className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
@@ -295,9 +300,7 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
                 inputMode="decimal"
                 pattern="[0-9]*[.,]?[0-9]*"
                 value={values.carbs}
-                onChange={handleNumberChange('carbs')}
-                onFocus={handleInputFocus}
-                placeholder="0"
+                onChange={(e) => handleNumberChange(e.target.value, 'carbs')}
                 className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
@@ -313,9 +316,7 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, selectedDate }) 
                 inputMode="decimal"
                 pattern="[0-9]*[.,]?[0-9]*"
                 value={values.grams}
-                onChange={handleNumberChange('grams')}
-                onFocus={handleInputFocus}
-                placeholder="0"
+                onChange={(e) => handleNumberChange(e.target.value, 'grams')}
                 className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               />

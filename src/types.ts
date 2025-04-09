@@ -59,12 +59,15 @@ export interface NutritionGoals {
 }
 
 export interface AiSuggestion {
-  name: string;
-  weight: number;  // масса в граммах
-  calories: number;
-  protein: number;
-  fat: number;
-  carbs: number;
+  success: boolean;
+  analysis?: {
+    calories: number;
+    protein: number;
+    fat: number;
+    carbs: number;
+    portion: number;
+  };
+  error?: string;
 }
 
 export interface MainMenuScreenProps {
