@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { UserParams, ActivityLevel, Goal, NutritionData } from '@/types';
-// Temporarily comment out until calculateNutritionGoals module is created
-// import { calculateNutritionGoals } from '@/utils/calculateNutritionGoals'; 
+import { calculateNutritionGoals } from '@/utils/calculateNutritionGoals';
 import { formatNumber } from '@/utils/formatNumber';
 import MyParametersForm from './MyParametersForm';
+import NutritionRings from './NutritionRings';
 
 interface MyParametersScreenProps {
     onGoalsCalculated: (goals: NutritionData) => void;
@@ -21,36 +22,49 @@ interface FormData {
   goal: 'Lose weight' | 'Maintain' | 'Gain muscle' | '';
 }
 
-const ACTIVITY_LEVELS: { value: ActivityLevel; label: string }[] = [
-  { value: 'sedentary', label: 'Сидячий образ жизни' },
-  { value: 'light', label: 'Легкая активность (1-3 раза в неделю)' },
-  { value: 'moderately_active', label: 'Умеренная активность (3-5 раз в неделю)' },
-  { value: 'active', label: 'Высокая активность (6-7 раз в неделю)' },
-  { value: 'very_active', label: 'Очень высокая активность (2 раза в день)' }
+const ACTIVITY_LEVELS = [
+  { value: 'sedentary', labelKey: 'settings.activity.sedentary' },
+  { value: 'light', labelKey: 'settings.activity.lightly_active' },
+  { value: 'moderate', labelKey: 'settings.activity.moderately_active' },
+  { value: 'active', labelKey: 'settings.activity.very_active' },
+  { value: 'very', labelKey: 'settings.activity.very_active' },
 ];
 
-const GOALS: { value: Goal; label: string }[] = [
-  { value: 'weight_loss', label: 'Похудение' },
-  { value: 'maintenance', label: 'Поддержание веса' },
-  { value: 'muscle_gain', label: 'Набор массы' }
+const GOALS = [
+  { value: 'weight_loss', labelKey: 'settings.goal.lose_weight' },
+  { value: 'maintenance', labelKey: 'settings.goal.maintenance' },
+  { value: 'muscle_gain', labelKey: 'settings.goal.gain_muscle' },
 ];
 
 const MyParametersScreen: React.FC<MyParametersScreenProps> = ({ onGoalsCalculated }) => {
-  const { user, updateUserParams } = useAuth();
+  const { t } = useTranslation();
+  const { user, updateUserParams, updateUserGoals } = useAuth();
   const [formData, setFormData] = useState<UserParams>({
     gender: 'male',
     age: 25,
     height: 170,
     weight: 70,
-    activityLevel: 'moderately_active',
+    activityLevel: 'moderate',
     goal: 'maintenance',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [calculatedGoals, setCalculatedGoals] = useState<NutritionData | null>(null);
 
   useEffect(() => {
     if (user?.params) {
       setFormData(user.params);
+      try {
+        const initialGoals = calculateNutritionGoals(user.params);
+        setCalculatedGoals(initialGoals);
+        if (!user.goals) {
+          updateUserGoals(initialGoals);
+        }
+      } catch (error) {
+        console.error("Error calculating initial goals:", error);
+      }
+    } else if (user && !user.params) {
+      setCalculatedGoals(null);
     }
   }, [user]);
 
@@ -62,9 +76,11 @@ const MyParametersScreen: React.FC<MyParametersScreenProps> = ({ onGoalsCalculat
     try {
       await updateUserParams(formData);
       const goals = calculateNutritionGoals(formData);
+      await updateUserGoals(goals);
+      setCalculatedGoals(goals);
       onGoalsCalculated(goals);
     } catch (err) {
-      setError('Failed to update parameters. Please try again.');
+      setError(t('settings.error.updateFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -80,29 +96,44 @@ const MyParametersScreen: React.FC<MyParametersScreenProps> = ({ onGoalsCalculat
     }));
   };
 
-  const goals = calculateNutritionGoals(formData);
+  const handleCalculateGoals = async () => {
+    if (formData) {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const goals = calculateNutritionGoals(formData);
+        await updateUserGoals(goals);
+        setCalculatedGoals(goals);
+      } catch (error) {
+        console.error("Error calculating/saving goals:", error);
+        setError('Failed to calculate or save goals.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
 
   return (
     <div className="max-w-2xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">My Parameters</h1>
+      <h1 className="text-2xl font-bold mb-6">{t('settings.title')}</h1>
       
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Gender</label>
+            <label className="block text-sm font-medium text-gray-700">{t('settings.gender')}</label>
             <select
               name="gender"
               value={formData.gender}
               onChange={handleChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             >
-              <option value="male">Male</option>
-              <option value="female">Female</option>
+              <option value="male">{t('settings.gender.male')}</option>
+              <option value="female">{t('settings.gender.female')}</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Age</label>
+            <label className="block text-sm font-medium text-gray-700">{t('settings.age')}</label>
             <input
               type="number"
               name="age"
@@ -115,7 +146,7 @@ const MyParametersScreen: React.FC<MyParametersScreenProps> = ({ onGoalsCalculat
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Height (cm)</label>
+            <label className="block text-sm font-medium text-gray-700">{t('settings.height')}</label>
             <input
               type="number"
               name="height"
@@ -128,7 +159,7 @@ const MyParametersScreen: React.FC<MyParametersScreenProps> = ({ onGoalsCalculat
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Weight (kg)</label>
+            <label className="block text-sm font-medium text-gray-700">{t('settings.weight')}</label>
             <input
               type="number"
               name="weight"
@@ -141,7 +172,7 @@ const MyParametersScreen: React.FC<MyParametersScreenProps> = ({ onGoalsCalculat
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Activity Level</label>
+            <label className="block text-sm font-medium text-gray-700">{t('settings.activityLevel')}</label>
             <select
               name="activityLevel"
               value={formData.activityLevel}
@@ -150,14 +181,14 @@ const MyParametersScreen: React.FC<MyParametersScreenProps> = ({ onGoalsCalculat
             >
               {ACTIVITY_LEVELS.map(level => (
                 <option key={level.value} value={level.value}>
-                  {level.label}
+                  {t(level.labelKey)}
                 </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Goal</label>
+            <label className="block text-sm font-medium text-gray-700">{t('settings.goal')}</label>
             <select
               name="goal"
               value={formData.goal}
@@ -166,7 +197,7 @@ const MyParametersScreen: React.FC<MyParametersScreenProps> = ({ onGoalsCalculat
             >
               {GOALS.map(goal => (
                 <option key={goal.value} value={goal.value}>
-                  {goal.label}
+                  {t(goal.labelKey)}
                 </option>
               ))}
             </select>
@@ -182,39 +213,57 @@ const MyParametersScreen: React.FC<MyParametersScreenProps> = ({ onGoalsCalculat
           disabled={isLoading}
           className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
         >
-          {isLoading ? 'Saving...' : 'Save Parameters'}
+          {isLoading ? t('loading') : t('settings.save')}
         </button>
       </form>
 
       <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4">Recommended Nutrition Goals</h2>
+        <h2 className="text-xl font-semibold mb-4">{t('settings.goals.title')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="font-medium text-gray-700">Calories</h3>
+            <h3 className="font-medium text-gray-700">{t('settings.goals.calories')}</h3>
             <p className="text-2xl font-bold text-indigo-600">
-              {formatNumber(goals.calories)} kcal
+              {formatNumber(calculatedGoals?.calories || 0)} kcal
             </p>
           </div>
           <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="font-medium text-gray-700">Protein</h3>
+            <h3 className="font-medium text-gray-700">{t('settings.goals.protein')}</h3>
             <p className="text-2xl font-bold text-indigo-600">
-              {formatNumber(goals.protein)}g
+              {formatNumber(calculatedGoals?.protein || 0)}g
             </p>
           </div>
           <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="font-medium text-gray-700">Fat</h3>
+            <h3 className="font-medium text-gray-700">{t('settings.goals.fat')}</h3>
             <p className="text-2xl font-bold text-indigo-600">
-              {formatNumber(goals.fat)}g
+              {formatNumber(calculatedGoals?.fat || 0)}g
             </p>
           </div>
           <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="font-medium text-gray-700">Carbs</h3>
+            <h3 className="font-medium text-gray-700">{t('settings.goals.carbs')}</h3>
             <p className="text-2xl font-bold text-indigo-600">
-              {formatNumber(goals.carbs)}g
+              {formatNumber(calculatedGoals?.carbs || 0)}g
             </p>
           </div>
         </div>
       </div>
+
+      <button 
+        onClick={handleCalculateGoals} 
+        disabled={!formData || isLoading} 
+        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
+      >
+        {t('settings.goals.calculate')}
+      </button>
+
+      {calculatedGoals && (
+        <div className="mt-6">
+          <h2 className="text-xl font-semibold mb-2">{t('settings.calculatedGoals.title')}</h2>
+          <NutritionRings 
+            current={{ calories: 0, protein: 0, fat: 0, carbs: 0 }}
+            goals={calculatedGoals} 
+          />
+        </div>
+      )}
     </div>
   );
 };

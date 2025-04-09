@@ -3,15 +3,20 @@ import { motion } from 'framer-motion';
 import { FaUserCog, FaUtensils } from 'react-icons/fa';
 import AppTitle from './AppTitle';
 import NutritionRings from './NutritionRings';
+import { NutritionData, NutritionGoals } from '@/types';
 
 interface MainMenuScreenProps {
   userName: string | null;
+  userProfile: { goals: NutritionGoals };
+  dailyTotals: NutritionData;
   onAddMealClick: () => void;
   onParametersClick: () => void;
 }
 
 const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
   userName,
+  userProfile,
+  dailyTotals,
   onAddMealClick,
   onParametersClick
 }) => {
@@ -43,7 +48,10 @@ const MainMenuScreen: React.FC<MainMenuScreenProps> = ({
           </motion.div>
         )}
 
-        <NutritionRings />
+        <NutritionRings 
+          current={dailyTotals}
+          goals={userProfile.goals}
+        />
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 bg-white shadow-lg">

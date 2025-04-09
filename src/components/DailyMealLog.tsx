@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { Meal, MealCategory, MEAL_CATEGORIES } from '../types';
@@ -31,13 +31,26 @@ const DailyMealLog: React.FC<DailyMealLogProps> = ({ meals, onEditMeal, onDelete
     setEditingMeal(null);
   };
 
-  const getMealsByCategory = (category: MealCategory) => {
+  const getMealsByCategory = useCallback((category: MealCategory) => {
     return meals.filter(meal => meal.category === category);
-  };
+  }, [meals]);
+
+  const mealsByCategory = useMemo(() => {
+    const categories: MealCategory[] = ['breakfast', 'lunch', 'dinner', 'snack'];
+    const result: { [key in MealCategory]?: Meal[] } = {};
+    categories.forEach(category => {
+      const categoryMeals = getMealsByCategory(category);
+      if (categoryMeals.length > 0) {
+        result[category] = categoryMeals;
+      }
+    });
+    return result;
+  // eslint-disable-next-line react-hooks/exhaustive-deps 
+  }, [getMealsByCategory]); // meals dependency is indirect via getMealsByCategory
 
   // Calculate nutrition totals for each category
   const categoryTotals = useMemo(() => {
-    return MEAL_CATEGORIES.map(category => {
+    return MEAL_CATEGORIES.map(category => { 
       const categoryMeals = getMealsByCategory(category);
       return {
         category,
@@ -47,7 +60,8 @@ const DailyMealLog: React.FC<DailyMealLogProps> = ({ meals, onEditMeal, onDelete
         carbs: categoryMeals.reduce((sum, meal) => sum + meal.carbs, 0)
       };
     });
-  }, [meals]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps 
+  }, [getMealsByCategory]); // MEAL_CATEGORIES is constant
 
   return (
     <div className="space-y-4 pb-32">

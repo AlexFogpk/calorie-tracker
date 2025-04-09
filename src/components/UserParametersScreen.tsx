@@ -4,30 +4,41 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import { useAuth } from '@/hooks/useAuth';
 import { IoCloseOutline } from 'react-icons/io5';
-import { UserParameters } from '@/types';
+import { UserParameters, NutritionGoals, UserParams, ActivityLevel, Goal, Gender } from '@/types';
+import { calculateNutritionGoals } from '@/utils/calculateNutritionGoals';
+import NutritionRings from './NutritionRings';
 
 interface UserParametersScreenProps {
   onClose: () => void;
+  onGoalsCalculated: (goals: NutritionGoals) => void;
 }
 
+const ACTIVITY_LEVELS: { value: ActivityLevel; label: string }[] = [
+  { value: 'sedentary', label: 'Сидячий образ жизни' },
+  { value: 'light', label: 'Легкая активность (1-3 раза в неделю)' },
+  { value: 'moderate', label: 'Умеренная активность (3-5 раз в неделю)' },
+  { value: 'active', label: 'Высокая активность (6-7 раз в неделю)' },
+  { value: 'very', label: 'Очень высокая активность (2 раза в день)' }
+];
+
+const GOALS: { value: Goal; label: string }[] = [
+  { value: 'weight_loss', label: 'Потеря веса' },
+  { value: 'maintenance', label: 'Поддержание веса' },
+  { value: 'muscle_gain', label: 'Набор мышечной массы' }
+];
+
 const defaultParameters: UserParameters = {
-  name: '',
   age: 30,
   gender: 'male',
   height: 170,
   weight: 70,
-  activityLevel: 'medium',
-  goals: {
-    calories: 2000,
-    protein: 150,
-    fat: 70,
-    carbs: 250
-  }
+  activityLevel: 'moderate',
+  goal: 'maintenance',
 };
 
-const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose }) => {
-  const { user } = useAuth();
-  const [parameters, setParameters] = useState<UserParameters>(defaultParameters);
+const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose, onGoalsCalculated }) => {
+  const { user, updateUserParams, params: loadedParams, loading: authLoading } = useAuth();
+  const [parameters, setParameters] = useState<UserParams>(loadedParams || defaultParameters);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +52,7 @@ const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose }) 
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          setParameters(docSnap.data() as UserParameters);
+          setParameters(docSnap.data() as UserParams);
         }
       } catch (error) {
         console.error('Ошибка загрузки параметров:', error);
@@ -54,11 +65,7 @@ const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose }) 
     loadUserParameters();
   }, [user]);
 
-  const validateParameters = (params: UserParameters): boolean => {
-    if (!params.name.trim()) {
-      setError('Введите ваше имя');
-      return false;
-    }
+  const validateParameters = (params: UserParams): boolean => {
     if (params.age < 0 || params.age > 150) {
       setError('Некорректный возраст');
       return false;
@@ -69,14 +76,6 @@ const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose }) 
     }
     if (params.weight < 0 || params.weight > 500) {
       setError('Некорректный вес');
-      return false;
-    }
-    if (params.goals.calories <= 0) {
-      setError('Цель по калориям должна быть больше 0');
-      return false;
-    }
-    if (params.goals.protein < 0 || params.goals.fat < 0 || params.goals.carbs < 0) {
-      setError('Цели по БЖУ не могут быть отрицательными');
       return false;
     }
     return true;
@@ -105,6 +104,29 @@ const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose }) 
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    field: keyof UserParams | 'goal'
+  ) => {
+    const value = e.target.value;
+    setParameters(prev => {
+      if (!prev) return null;
+      if (field === 'gender') {
+        return { ...prev, [field]: value as Gender };
+      }
+      if (field === 'activityLevel') {
+        return { ...prev, [field]: value as ActivityLevel };
+      }
+      if (field === 'goal') {
+        return { ...prev, [field]: value as Goal };
+      }
+      if (field === 'age' || field === 'height' || field === 'weight') {
+        return { ...prev, [field]: parseInt(value, 10) || 0 };
+      }
+      return prev;
+    });
   };
 
   if (loading) {
@@ -151,25 +173,12 @@ const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose }) 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Имя
-            </label>
-            <input
-              type="text"
-              value={parameters.name}
-              onChange={(e) => setParameters({ ...parameters, name: e.target.value })}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Возраст
             </label>
             <input
               type="number"
               value={parameters.age}
-              onChange={(e) => setParameters({ ...parameters, age: Math.max(0, parseInt(e.target.value) || 0) })}
+              onChange={(e) => handleChange(e, 'age')}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               min="0"
               required
@@ -182,7 +191,7 @@ const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose }) 
             </label>
             <select
               value={parameters.gender}
-              onChange={(e) => setParameters({ ...parameters, gender: e.target.value as 'male' | 'female' })}
+              onChange={(e) => handleChange(e, 'gender')}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
               <option value="male">Мужской</option>
@@ -197,7 +206,7 @@ const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose }) 
             <input
               type="number"
               value={parameters.height}
-              onChange={(e) => setParameters({ ...parameters, height: Math.max(0, parseInt(e.target.value) || 0) })}
+              onChange={(e) => handleChange(e, 'height')}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               min="0"
               required
@@ -211,7 +220,7 @@ const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose }) 
             <input
               type="number"
               value={parameters.weight}
-              onChange={(e) => setParameters({ ...parameters, weight: Math.max(0, parseInt(e.target.value) || 0) })}
+              onChange={(e) => handleChange(e, 'weight')}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               min="0"
               required
@@ -224,100 +233,28 @@ const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose }) 
             </label>
             <select
               value={parameters.activityLevel}
-              onChange={(e) => setParameters({ ...parameters, activityLevel: e.target.value as 'low' | 'medium' | 'high' })}
+              onChange={(e) => handleChange(e, 'activityLevel')}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
-              <option value="low">Низкий (сидячий образ жизни)</option>
-              <option value="medium">Средний (умеренные тренировки)</option>
-              <option value="high">Высокий (интенсивные тренировки)</option>
+              {ACTIVITY_LEVELS.map(level => (
+                <option key={level.value} value={level.value}>{level.label}</option>
+              ))}
             </select>
           </div>
 
-          <div className="pt-4">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
-              Цели питания
-            </h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Калории (ккал)
-                </label>
-                <input
-                  type="number"
-                  value={parameters.goals.calories}
-                  onChange={(e) => setParameters({
-                    ...parameters,
-                    goals: {
-                      ...parameters.goals,
-                      calories: Math.max(0, parseInt(e.target.value) || 0)
-                    }
-                  })}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  min="0"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Белки (г)
-                </label>
-                <input
-                  type="number"
-                  value={parameters.goals.protein}
-                  onChange={(e) => setParameters({
-                    ...parameters,
-                    goals: {
-                      ...parameters.goals,
-                      protein: Math.max(0, parseInt(e.target.value) || 0)
-                    }
-                  })}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  min="0"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Жиры (г)
-                </label>
-                <input
-                  type="number"
-                  value={parameters.goals.fat}
-                  onChange={(e) => setParameters({
-                    ...parameters,
-                    goals: {
-                      ...parameters.goals,
-                      fat: Math.max(0, parseInt(e.target.value) || 0)
-                    }
-                  })}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  min="0"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Углеводы (г)
-                </label>
-                <input
-                  type="number"
-                  value={parameters.goals.carbs}
-                  onChange={(e) => setParameters({
-                    ...parameters,
-                    goals: {
-                      ...parameters.goals,
-                      carbs: Math.max(0, parseInt(e.target.value) || 0)
-                    }
-                  })}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  min="0"
-                  required
-                />
-              </div>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Цель
+            </label>
+            <select
+              value={parameters.goal}
+              onChange={(e) => handleChange(e, 'goal')}
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+            >
+              {GOALS.map(g => (
+                <option key={g.value} value={g.value}>{g.label}</option>
+              ))}
+            </select>
           </div>
 
           <motion.button

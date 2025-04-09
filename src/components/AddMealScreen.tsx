@@ -8,18 +8,18 @@ import { useAuth } from '../hooks/useAuth';
 import { Meal, MealCategory, MEAL_CATEGORIES, NutritionData } from '../types';
 import { analyzeMeal } from '@/api/analyze-meal';
 import { formatNumber } from '@/utils/formatNumber';
-import { mealCacheService } from '../services/mealCacheService';
+import { mealCacheService } from '@/services/mealCache';
 
 interface AddMealScreenProps {
   onClose: () => void;
-  onAddMeal?: (meal: NutritionData) => void;
+  onAddMeal?: (meal: NutritionData & { weight: number }) => void;
   selectedDate?: Date;
 }
 
 const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal, selectedDate }) => {
   const { user } = useAuth();
   const [name, setName] = useState('');
-  const [category, setCategory] = useState<MealCategory>('Завтрак');
+  const [category, setCategory] = useState<MealCategory>('breakfast');
   const [isLoading, setIsLoading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -200,30 +200,36 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal, selec
       // Сохраняем в Firestore
       const mealRef = await addDoc(collection(db, `users/${user.uid}/meals`), mealData);
 
-      // Добавляем в кэш
+      // Add to cache using cacheMeal
+      // Use the original meal description as the key
       mealCacheService.cacheMeal(name, {
-        success: true,
+        success: true, // Assuming success if we got here
         analysis: {
           calories,
           protein,
           fat,
           carbs,
-          portion: grams
+          portion: 1, // Default portion?
+          weight: grams // Add weight from user input
         },
-        timestamp: Date.now()
+        timestamp: Date.now() // Add timestamp for CachedMeal type
       });
 
-      // Добавляем в историю
-      mealCacheService.addToHistory(name, {
-        success: true,
-        analysis: {
-          calories,
-          protein,
-          fat,
-          carbs,
-          portion: grams
-        }
-      });
+      // Add suggestion to history if AI was used
+      if (aiGenerated && originalData) {
+        mealCacheService.addToHistory(name, { // Use addToHistory
+          success: true,
+          analysis: {
+            calories: originalData.calories,
+            protein: originalData.protein,
+            fat: originalData.fat,
+            carbs: originalData.carbs,
+            portion: originalData.grams,
+            weight: originalData.grams
+          },
+          timestamp: Date.now() // Use timestamp from originalData
+        });
+      }
 
       // Обновляем UI через onAddMeal
       if (onAddMeal) {
@@ -231,7 +237,8 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal, selec
           calories,
           protein,
           fat,
-          carbs
+          carbs,
+          weight: grams
         });
       }
 
@@ -262,6 +269,7 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal, selec
         <div className="p-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">Добавить приём пищи</h2>
           <button
+            type="button"
             onClick={onClose}
             className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
           >
@@ -309,7 +317,10 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal, selec
             >
               {MEAL_CATEGORIES.map(cat => (
                 <option key={cat} value={cat}>
-                  {cat}
+                  {cat === 'breakfast' ? 'Завтрак' :
+                   cat === 'lunch' ? 'Обед' :
+                   cat === 'dinner' ? 'Ужин' :
+                   cat === 'snack' ? 'Перекус' : cat}
                 </option>
               ))}
             </select>
@@ -399,29 +410,35 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal, selec
 
           {error && (
             <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-red-500 text-sm"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-4 text-center text-red-500 text-sm"
             >
               {error}
             </motion.p>
           )}
 
-          <div className="flex justify-end gap-3 pt-2">
-            <button
+          <div className="flex justify-end space-x-4 mt-6">
+            <motion.button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-150 ease-in-out"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               Отмена
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
+              className={`px-6 py-2 rounded-lg transition duration-150 ease-in-out flex items-center justify-center ${
+                isLoading ? 'bg-blue-300' : 'bg-blue-500 hover:bg-blue-600 text-white'
+              }`}
+              whileHover={{ scale: isLoading ? 1 : 1.05 }}
+              whileTap={{ scale: isLoading ? 1 : 0.95 }}
             >
-              {isLoading ? 'Сохранение...' : 'Сохранить'}
-            </button>
+              {isLoading ? 'Загрузка...' : 'Добавить'}
+            </motion.button>
           </div>
         </form>
       </motion.div>

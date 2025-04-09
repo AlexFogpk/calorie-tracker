@@ -66,7 +66,7 @@ function validateAiResponse(data: unknown): data is NutritionData {
 }
 
 // API endpoint for meal analysis
-const analyzeMealHandler: express.RequestHandler = async (req, res) => {
+const analyzeMealHandler: express.RequestHandler = async (req, res): Promise<void> => {
   try {
     const { description } = req.body;
     console.log('Analyzing meal:', description);
@@ -211,7 +211,6 @@ const analyzeMealHandler: express.RequestHandler = async (req, res) => {
       
       // Ensure all numeric fields are numbers and within limits
       const validatedData: NutritionData = {
-        name: nutritionData.name || "",
         weight: Math.min(Math.max(Number(nutritionData.weight) || 100, 0), 10000),
         calories: Math.min(Math.max(Number(nutritionData.calories) || 0, 0), 5000),
         protein: Math.min(Math.max(Number(nutritionData.protein) || 0, 0), 200),
@@ -221,6 +220,7 @@ const analyzeMealHandler: express.RequestHandler = async (req, res) => {
       
       console.log('Validated and normalized data:', validatedData);
       res.json(validatedData);
+      return;
     } catch (error) {
       console.error('Failed to process AI response:', error);
       console.error('Raw content:', content);
@@ -233,6 +233,7 @@ const analyzeMealHandler: express.RequestHandler = async (req, res) => {
         fat: 0,
         carbs: 0
       });
+      return;
     }
   } catch (error) {
     console.error('Error in meal analysis:', error);
@@ -241,10 +242,23 @@ const analyzeMealHandler: express.RequestHandler = async (req, res) => {
         name: error.name,
         message: error.message,
         stack: error.stack,
-        response: error.hasOwnProperty('response') ? (error as any).response : undefined
+        response: Object.prototype.hasOwnProperty.call(error, 'response') ? (error as any).response : undefined
       });
     }
     
+    // Check for specific error structures
+    if (typeof error === 'object' && error !== null) {
+      if (Object.prototype.hasOwnProperty.call(error, 'status') && Object.prototype.hasOwnProperty.call(error, 'message')) {
+        // Likely an OpenAI API error
+        res.status((error as any).status).json({ success: false, error: (error as any).message });
+        return;
+      } else if (Object.prototype.hasOwnProperty.call(error, 'message')) {
+        // Generic error object
+        res.status(500).json({ success: false, error: (error as Error).message });
+        return;
+      }
+    }
+
     res.json({
       name: "",
       weight: 0,

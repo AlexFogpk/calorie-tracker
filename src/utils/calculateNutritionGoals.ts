@@ -38,6 +38,7 @@ export const calculateNutritionGoals = (params: UserParams): NutritionData => {
   const carbs = Math.round((calories - (protein * 4 + fat * 9)) / 4); // Оставшиеся калории из углеводов
 
   return {
+    weight: 0,
     calories,
     protein,
     fat,

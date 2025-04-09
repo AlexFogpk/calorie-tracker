@@ -37,9 +37,10 @@ export const calculateNutritionGoals = (params: UserParameters): NutritionGoals 
   const proteinCalories = protein * 4;
   const fatCalories = fat * 9;
   const carbCalories = calories - proteinCalories - fatCalories;
-  const carbs = Math.round(carbCalories / 4);
+  const carbs = Math.round((calories - (protein * 4 + fat * 9)) / 4);
 
   return {
+    weight: params.weight,
     calories,
     protein,
     fat,

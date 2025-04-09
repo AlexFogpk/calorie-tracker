@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import type { Meal, MealCategory } from '@/types';
+import React, { useState, useEffect } from 'react';
+import { Meal, MealCategory, MEAL_CATEGORIES } from '@/types';
 import MealCategorySection from './MealCategorySection';
-import AddMealForm from './AddMealForm';
+import { AddMealForm } from './AddMealForm';
 import { getDisplayDate, getTodayDateString } from '../utils/dateUtils';
 
 interface MealLoggingScreenProps {
@@ -58,7 +58,7 @@ const MealLoggingScreen: React.FC<MealLoggingScreenProps> = ({
     setCategoryToAdd(null);
   };
 
-  const categories: MealCategory[] = ['Завтрак', 'Обед', 'Ужин', 'Перекус'];
+  const categories: MealCategory[] = MEAL_CATEGORIES;
   const safeMealsForDate = mealsForDate || { 'Завтрак': [], 'Обед': [], 'Ужин': [], 'Перекус': [] };
 
   return (
@@ -90,18 +90,15 @@ const MealLoggingScreen: React.FC<MealLoggingScreenProps> = ({
         />
       ))}
 
-      <AddMealForm
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setMealToEdit(null);
-          setCategoryToAdd(null);
-        }}
-        onSubmit={handleMealSubmit}
-        category={categoryToAdd}
-        date={getDisplayDate(selectedDate)}
-        initialMeal={mealToEdit?.meal}
-      />
+      {isModalOpen && (
+        <AddMealForm
+          onClose={() => setIsModalOpen(false)}
+          onSubmit={handleMealSubmit}
+          category={categoryToAdd}
+          date={getDisplayDate(selectedDate)}
+          initialMeal={mealToEdit?.meal}
+        />
+      )}
     </div>
   );
 };

@@ -1,4 +1,5 @@
-const isDev = process.env.NODE_ENV === 'development';
+// Use Vite env variables (import.meta.env)
+const isDev = import.meta.env.MODE === 'development';
 
 export const logger = {
   info: (message: string, data?: any) => {
@@ -10,6 +11,8 @@ export const logger = {
     if (isDev) {
       console.error(`[ERROR] ${message}`, error || '');
     }
+    // Optionally send non-dev errors to Sentry here
+    // captureError(new Error(message), { extra: data });
   },
   warn: (message: string, data?: any) => {
     if (isDev) {

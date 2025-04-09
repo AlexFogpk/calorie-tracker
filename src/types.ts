@@ -49,6 +49,7 @@ export interface User {
   displayName?: string;
   photoURL?: string;
   params?: UserParams;
+  goals?: NutritionGoals;
 }
 
 export interface AiSuggestion {

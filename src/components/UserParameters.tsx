@@ -5,34 +5,35 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useAuth } from '../hooks/useAuth';
 import { calculateNutritionGoals } from '@/utils/calculateNutritionGoals';
-import { UserParams, ActivityLevel, Goal } from '@/types';
+import type { UserParameters as UserParametersType, Gender, ActivityLevel, Goal } from '@/types';
 
 interface UserParametersProps {
   onComplete: () => void;
+  initialData?: UserParametersType;
 }
 
 const ACTIVITY_LEVELS: { value: ActivityLevel; label: string }[] = [
   { value: 'sedentary', label: 'Сидячий образ жизни' },
   { value: 'light', label: 'Легкая активность (1-3 раза в неделю)' },
-  { value: 'moderately_active', label: 'Умеренная активность (3-5 раз в неделю)' },
+  { value: 'moderate', label: 'Умеренная активность (3-5 раз в неделю)' },
   { value: 'active', label: 'Высокая активность (6-7 раз в неделю)' },
-  { value: 'very_active', label: 'Очень высокая активность (2 раза в день)' }
+  { value: 'very', label: 'Очень высокая активность (2 раза в день)' }
 ];
 
 const GOALS: { value: Goal; label: string }[] = [
-  { value: 'weight_loss', label: 'Похудение' },
+  { value: 'weight_loss', label: 'Потеря веса' },
   { value: 'maintenance', label: 'Поддержание веса' },
-  { value: 'muscle_gain', label: 'Набор массы' }
+  { value: 'muscle_gain', label: 'Набор мышечной массы' }
 ];
 
-const UserParameters: React.FC<UserParametersProps> = ({ onComplete }) => {
+const UserParameters: React.FC<UserParametersProps> = ({ onComplete, initialData }) => {
   const { user } = useAuth();
-  const [formData, setFormData] = useState<UserParams>({
+  const [formData, setFormData] = useState<UserParametersType>(initialData || {
     gender: 'male',
-    age: 25,
+    age: 30,
     height: 170,
     weight: 70,
-    activityLevel: 'moderately_active',
+    activityLevel: 'moderate',
     goal: 'maintenance'
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -48,10 +49,10 @@ const UserParameters: React.FC<UserParametersProps> = ({ onComplete }) => {
           const userData = userDoc.data();
           setFormData({
             gender: userData.gender || 'male',
-            age: userData.age || 25,
+            age: userData.age || 30,
             height: userData.height || 170,
             weight: userData.weight || 70,
-            activityLevel: userData.activityLevel || 'moderately_active',
+            activityLevel: userData.activityLevel || 'moderate',
             goal: userData.goal || 'maintenance'
           });
         }
@@ -92,9 +93,14 @@ const UserParameters: React.FC<UserParametersProps> = ({ onComplete }) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'age' || name === 'height' || name === 'weight' 
-        ? Number(value) 
-        : value,
+      [name]: 
+        name === 'gender' ? value as Gender :
+        name === 'activityLevel' ? value as ActivityLevel :
+        name === 'goal' ? value as Goal :
+        // For numeric fields, parse as number
+        (name === 'age' || name === 'height' || name === 'weight') ? Number(value) || 0 :
+        // Fallback for safety, though should not be needed with correct names
+        value,
     }));
   };
 

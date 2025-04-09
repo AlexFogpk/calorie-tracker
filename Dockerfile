@@ -9,7 +9,8 @@ RUN echo "Cache bust: $CACHE_BREAKER"
 
 # Установка зависимостей
 COPY package.json ./
-RUN npm install --no-package-lock
+COPY package-lock.json ./
+RUN npm ci
 
 # Копируем проект
 COPY . .
@@ -40,7 +41,8 @@ WORKDIR /app
 
 # Установка только прод-зависимостей
 COPY package.json ./
-RUN npm install --production
+COPY package-lock.json ./
+RUN npm ci --omit=dev
 
 # Копируем собранные артефакты
 COPY --from=builder /app/dist ./dist

@@ -19,7 +19,7 @@ const EditMealScreen: React.FC<EditMealScreenProps> = ({ meal, onClose }) => {
   const [protein, setProtein] = useState(formatNumber(meal.protein));
   const [fat, setFat] = useState(formatNumber(meal.fat));
   const [carbs, setCarbs] = useState(formatNumber(meal.carbs));
-  const [grams, setGrams] = useState(formatNumber(meal.grams));
+  const [weight, setWeight] = useState(formatNumber(meal.weight));
   const [category, setCategory] = useState<MealCategory>(meal.category);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +46,7 @@ const EditMealScreen: React.FC<EditMealScreenProps> = ({ meal, onClose }) => {
         protein: parseInt(protein) || 0,
         fat: parseInt(fat) || 0,
         carbs: parseInt(carbs) || 0,
-        grams: parseInt(grams) || 0,
+        weight: parseInt(weight) || 0,
         category,
         timestamp: meal.timestamp
       };
@@ -185,16 +185,16 @@ const EditMealScreen: React.FC<EditMealScreenProps> = ({ meal, onClose }) => {
             </div>
 
             <div>
-              <label htmlFor="grams" className="block text-sm font-medium text-gray-800 mb-1">
+              <label htmlFor="weight" className="block text-sm font-medium text-gray-800 mb-1">
                 Вес (г)
               </label>
               <input
                 type="text"
                 inputMode="decimal"
                 pattern="[0-9]*[.,]?[0-9]*"
-                id="grams"
-                value={grams}
-                onChange={(e) => handleNumberChange(e.target.value, setGrams)}
+                id="weight"
+                value={weight}
+                onChange={(e) => handleNumberChange(e.target.value, setWeight)}
                 className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
