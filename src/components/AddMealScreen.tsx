@@ -5,13 +5,13 @@ import { FaRobot } from 'react-icons/fa';
 import { doc, addDoc, collection } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useAuth } from '../hooks/useAuth';
-import { Meal, MealCategory, MEAL_CATEGORIES } from '../types';
+import { Meal, MealCategory, MEAL_CATEGORIES, NutritionData } from '../types';
 import { analyzeMeal } from '@/api/analyze-meal';
 import { formatNumber } from '@/utils/formatNumber';
 
 interface AddMealScreenProps {
   onClose: () => void;
-  onAddMeal: (meal: Meal) => void;
+  onAddMeal?: (meal: NutritionData) => void;
 }
 
 const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal }) => {
@@ -52,7 +52,7 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal }) => 
       // Если это поле веса и включен AI режим, пересчитываем значения
       if (field === 'grams' && aiGenerated && originalData) {
         const newWeight = validateNumber(normalizedValue);
-        if (newWeight !== null) {
+        if (newWeight !== null && newWeight > 0) {
           const ratio = newWeight / originalData.grams;
           const newValues = {
             calories: formatNumber(Math.round(originalData.calories * ratio)),
@@ -96,7 +96,7 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal }) => 
 
     try {
       const result = await analyzeMeal(name);
-      if (result.success && result.analysis) {
+      if (result?.success && result?.analysis) {
         const { calories, protein, fat, carbs, portion } = result.analysis;
         const formattedValues = {
           calories: formatNumber(calories),
@@ -126,7 +126,7 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal }) => 
           }
         });
       } else {
-        setError(result.error || 'Не удалось проанализировать блюдо');
+        setError(result?.error || 'Не удалось проанализировать блюдо');
       }
     } catch (err) {
       setError('Произошла ошибка при анализе');
@@ -138,39 +138,30 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal }) => 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
-      setError('Введите название блюда');
-      return;
-    }
-
-    const calories = validateNumber(values.calories);
-    const protein = validateNumber(values.protein);
-    const fat = validateNumber(values.fat);
-    const carbs = validateNumber(values.carbs);
-    const grams = validateNumber(values.grams);
-
-    if (calories === null || protein === null || fat === null || carbs === null || grams === null) {
-      setError('Пожалуйста, введите корректные числовые значения');
-      return;
-    }
-
     setIsLoading(true);
     setError(null);
 
     try {
-      const meal: Meal = {
-        id: Date.now().toString(),
-        name: name.trim(),
-        calories,
-        protein,
-        fat,
-        carbs,
-        grams,
-        category,
-        timestamp: new Date()
-      };
+      const calories = validateNumber(values.calories);
+      const protein = validateNumber(values.protein);
+      const fat = validateNumber(values.fat);
+      const carbs = validateNumber(values.carbs);
+      const grams = validateNumber(values.grams);
 
-      await onAddMeal(meal);
+      if (calories === null || protein === null || fat === null || carbs === null || grams === null) {
+        setError('Пожалуйста, введите корректные числовые значения');
+        return;
+      }
+
+      if (onAddMeal) {
+        onAddMeal({
+          calories,
+          protein,
+          fat,
+          carbs
+        });
+      }
+
       onClose();
     } catch (err) {
       setError('Произошла ошибка при сохранении');
