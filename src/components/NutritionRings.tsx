@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { formatNumber } from '@/utils/formatNumber';
 
 interface NutritionRingsProps {
   calories: number;
@@ -21,12 +22,6 @@ const NutritionRings: React.FC<NutritionRingsProps> = ({
   carbs,
   goals
 }) => {
-  // Функция для безопасного форматирования числа с одним знаком после запятой
-  const formatNumber = (value: number | null | undefined): string => {
-    if (value === null || value === undefined || isNaN(value)) return '0.0';
-    return (Math.round(value * 10) / 10).toFixed(1);
-  };
-
   const rings = [
     {
       value: calories,

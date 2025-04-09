@@ -5,6 +5,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useAuth } from '../hooks/useAuth';
 import { Meal, MealCategory, MEAL_CATEGORIES } from '../types';
+import { formatNumber } from '@/utils/formatNumber';
 
 interface EditMealScreenProps {
   meal: Meal;
@@ -14,13 +15,21 @@ interface EditMealScreenProps {
 const EditMealScreen: React.FC<EditMealScreenProps> = ({ meal, onClose }) => {
   const { user } = useAuth();
   const [name, setName] = useState(meal.name);
-  const [calories, setCalories] = useState(meal.calories.toString());
-  const [protein, setProtein] = useState(meal.protein.toString());
-  const [fat, setFat] = useState(meal.fat.toString());
-  const [carbs, setCarbs] = useState(meal.carbs.toString());
+  const [calories, setCalories] = useState(formatNumber(meal.calories));
+  const [protein, setProtein] = useState(formatNumber(meal.protein));
+  const [fat, setFat] = useState(formatNumber(meal.fat));
+  const [carbs, setCarbs] = useState(formatNumber(meal.carbs));
+  const [grams, setGrams] = useState(formatNumber(meal.grams));
   const [category, setCategory] = useState<MealCategory>(meal.category);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleNumberChange = (value: string, setter: (value: string) => void) => {
+    const normalizedValue = value.replace(',', '.');
+    if (/^\d*[.,]?\d*$/.test(normalizedValue)) {
+      setter(normalizedValue);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +46,7 @@ const EditMealScreen: React.FC<EditMealScreenProps> = ({ meal, onClose }) => {
         protein: parseInt(protein) || 0,
         fat: parseInt(fat) || 0,
         carbs: parseInt(carbs) || 0,
+        grams: parseInt(grams) || 0,
         category,
         timestamp: meal.timestamp
       };
@@ -115,12 +125,13 @@ const EditMealScreen: React.FC<EditMealScreenProps> = ({ meal, onClose }) => {
                 Калории
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
                 id="calories"
                 value={calories}
-                onChange={(e) => setCalories(e.target.value)}
+                onChange={(e) => handleNumberChange(e.target.value, setCalories)}
                 className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                min="0"
                 required
               />
             </div>
@@ -130,12 +141,13 @@ const EditMealScreen: React.FC<EditMealScreenProps> = ({ meal, onClose }) => {
                 Белки (г)
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
                 id="protein"
                 value={protein}
-                onChange={(e) => setProtein(e.target.value)}
+                onChange={(e) => handleNumberChange(e.target.value, setProtein)}
                 className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                min="0"
                 required
               />
             </div>
@@ -145,12 +157,13 @@ const EditMealScreen: React.FC<EditMealScreenProps> = ({ meal, onClose }) => {
                 Жиры (г)
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
                 id="fat"
                 value={fat}
-                onChange={(e) => setFat(e.target.value)}
+                onChange={(e) => handleNumberChange(e.target.value, setFat)}
                 className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                min="0"
                 required
               />
             </div>
@@ -160,12 +173,29 @@ const EditMealScreen: React.FC<EditMealScreenProps> = ({ meal, onClose }) => {
                 Углеводы (г)
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
                 id="carbs"
                 value={carbs}
-                onChange={(e) => setCarbs(e.target.value)}
+                onChange={(e) => handleNumberChange(e.target.value, setCarbs)}
                 className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                min="0"
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="grams" className="block text-sm font-medium text-gray-800 mb-1">
+                Вес (г)
+              </label>
+              <input
+                type="text"
+                inputMode="decimal"
+                pattern="[0-9]*[.,]?[0-9]*"
+                id="grams"
+                value={grams}
+                onChange={(e) => handleNumberChange(e.target.value, setGrams)}
+                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
             </div>
