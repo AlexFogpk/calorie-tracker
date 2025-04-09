@@ -13,6 +13,8 @@ export interface Meal {
 }
 
 export interface NutritionData {
+  name: string;
+  weight: number;
   calories: number;
   protein: number;
   fat: number;
@@ -120,6 +122,8 @@ export function calculateNutritionGoals(params: UserParameters): NutritionGoals 
   const carbs = Math.round((calories - (protein * 4 + fat * 9)) / 4); // Оставшиеся калории из углеводов
 
   return {
+    name: "Дневная норма",
+    weight: 0,
     calories,
     protein,
     fat,

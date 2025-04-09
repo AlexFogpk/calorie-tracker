@@ -20,24 +20,46 @@ const openai = new OpenAI({
 
 // Validate AI response
 function validateAiResponse(data: any): data is NutritionData {
-  if (!data || typeof data !== 'object') return false;
+  if (!data || typeof data !== 'object') {
+    console.error('Invalid data type:', typeof data);
+    return false;
+  }
 
-  const requiredFields = ['calories', 'protein', 'fat', 'carbs'];
+  const requiredFields = ['calories', 'protein', 'fat', 'carbs', 'weight', 'name'];
   
   for (const field of requiredFields) {
-    if (!(field in data)) return false;
-    if (typeof data[field] !== 'number' || data[field] < 0) return false;
+    if (!(field in data)) {
+      console.error(`Missing required field: ${field}`);
+      return false;
+    }
+    
+    if (field === 'name') {
+      if (typeof data[field] !== 'string') {
+        console.error(`Invalid name type: ${typeof data[field]}`);
+        return false;
+      }
+      continue;
+    }
+    
+    if (typeof data[field] !== 'number' || isNaN(data[field]) || data[field] < 0) {
+      console.error(`Invalid ${field} value:`, data[field]);
+      return false;
+    }
   }
 
   const limits = {
     calories: 5000,
     protein: 200,
     fat: 200,
-    carbs: 400
+    carbs: 400,
+    weight: 10000
   };
 
   for (const [field, limit] of Object.entries(limits)) {
-    if (data[field] > limit) return false;
+    if (data[field] > limit) {
+      console.error(`${field} exceeds limit:`, data[field], '>', limit);
+      return false;
+    }
   }
 
   return true;
@@ -179,12 +201,28 @@ const analyzeMealHandler: express.RequestHandler = async (req, res) => {
     try {
       nutritionData = JSON.parse(content);
       console.log('Raw AI response content:', content);
-      console.log('Parsed nutrition data with weight:', {
-        weight: (nutritionData as any).weight,
-        fullData: nutritionData
-      });
+      console.log('Parsed nutrition data:', nutritionData);
+      
+      // Validate the parsed data
+      if (!validateAiResponse(nutritionData)) {
+        console.error('Invalid nutrition data format:', nutritionData);
+        throw new Error('Invalid AI response format');
+      }
+      
+      // Ensure all numeric fields are numbers
+      const validatedData: NutritionData = {
+        name: nutritionData.name,
+        weight: Number(nutritionData.weight),
+        calories: Number(nutritionData.calories),
+        protein: Number(nutritionData.protein),
+        fat: Number(nutritionData.fat),
+        carbs: Number(nutritionData.carbs)
+      };
+      
+      console.log('Validated and normalized data:', validatedData);
+      res.json(validatedData);
     } catch (error) {
-      console.error('Failed to parse OpenAI response:', error);
+      console.error('Failed to process AI response:', error);
       console.error('Raw content:', content);
       
       res.json({
@@ -195,29 +233,7 @@ const analyzeMealHandler: express.RequestHandler = async (req, res) => {
         fat: 0,
         carbs: 0
       });
-      return;
     }
-
-    if (!validateAiResponse(nutritionData)) {
-      console.error('Invalid nutrition data format:', {
-        weight: (nutritionData as any).weight,
-        data: nutritionData,
-        validationError: 'Response does not match expected schema'
-      });
-      
-      res.json({
-        name: "",
-        weight: 0,
-        calories: 0,
-        protein: 0,
-        fat: 0,
-        carbs: 0
-      });
-      return;
-    }
-
-    console.log('Sending response:', nutritionData);
-    res.json(nutritionData);
   } catch (error) {
     console.error('Error in meal analysis:', error);
     if (error instanceof Error) {

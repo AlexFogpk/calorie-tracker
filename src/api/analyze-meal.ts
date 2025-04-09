@@ -38,15 +38,20 @@ export async function analyzeMeal(description: string): Promise<AiSuggestion> {
     const nutritionData = await response.json();
     console.log('Raw nutrition data from API:', nutritionData);
 
-    // Round all numeric values
+    // Validate and safely handle undefined values
+    if (!nutritionData || typeof nutritionData !== 'object') {
+      throw new Error('Invalid nutrition data received');
+    }
+
+    // Round all numeric values with nullish coalescing
     const roundedData = {
       success: true,
       analysis: {
-        calories: Math.round(nutritionData.calories),
-        protein: Math.round(nutritionData.protein),
-        fat: Math.round(nutritionData.fat),
-        carbs: Math.round(nutritionData.carbs),
-        portion: Math.round(nutritionData.weight)
+        calories: Math.round(nutritionData.calories ?? 0),
+        protein: Math.round(nutritionData.protein ?? 0),
+        fat: Math.round(nutritionData.fat ?? 0),
+        carbs: Math.round(nutritionData.carbs ?? 0),
+        portion: Math.round(nutritionData.weight ?? 100)
       }
     };
 
