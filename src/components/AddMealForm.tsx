@@ -1,324 +1,274 @@
-import React, { useState, useEffect } from 'react';
-import { Meal, MealCategory } from '@/types';
-import { motion, AnimatePresence } from 'framer-motion';
-import { addDoc, collection, doc, updateDoc, Timestamp } from 'firebase/firestore';
-import { db } from '@/firebaseConfig';
+import React, { useState, useRef, useEffect } from 'react';
+import { Meal, MealCategory, MEAL_CATEGORIES, NutritionData } from '@/types';
 import { analyzeMeal } from '@/api/analyze-meal';
-import { IoCloseOutline } from 'react-icons/io5';
-import { MdOutlineRestaurantMenu } from 'react-icons/md';
-import { AiOutlineRobot } from 'react-icons/ai';
+import { formatNumber } from '@/utils/formatNumber';
 
 interface AddMealFormProps {
-  initialMeal?: Meal;
-  onClose: () => void;
-  userId: string | null;
+  onSubmit: (meal: Meal) => void;
+  hasUserParameters: boolean;
 }
 
-const AddMealForm: React.FC<AddMealFormProps> = ({ initialMeal, onClose, userId }) => {
-  const [entryMode, setEntryMode] = useState<'manual' | 'ai'>('manual');
+export const AddMealForm: React.FC<AddMealFormProps> = ({ onSubmit, hasUserParameters }) => {
+  const [name, setName] = useState('');
+  const [category, setCategory] = useState<MealCategory>('breakfast');
+  const [weight, setWeight] = useState('100');
+  const [calories, setCalories] = useState('');
+  const [protein, setProtein] = useState('');
+  const [fat, setFat] = useState('');
+  const [carbs, setCarbs] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [aiInput, setAiInput] = useState('');
-  const [meal, setMeal] = useState<Omit<Meal, 'id'>>({
-    name: '',
-    calories: 0,
-    protein: 0,
-    fat: 0,
-    carbs: 0,
-    category: 'snack',
-    timestamp: Timestamp.fromDate(new Date())
-  });
+  const [error, setError] = useState('');
+  const [isAiAnalyzed, setIsAiAnalyzed] = useState(false);
+  const [isManualEdit, setIsManualEdit] = useState(false);
+  const formRef = useRef<HTMLDivElement>(null);
 
+  // Автоматически скрываем клавиатуру при тапе вне полей ввода
   useEffect(() => {
-    if (initialMeal) {
-      setMeal({
-        name: initialMeal.name,
-        calories: initialMeal.calories,
-        protein: initialMeal.protein || 0,
-        fat: initialMeal.fat || 0,
-        carbs: initialMeal.carbs || 0,
-        category: initialMeal.category || 'snack',
-        timestamp: initialMeal.timestamp || Timestamp.fromDate(new Date())
-      });
-    }
-  }, [initialMeal]);
-
-  const validateMeal = (meal: Omit<Meal, 'id'>): boolean => {
-    if (!meal.name.trim()) {
-      setError('Введите название блюда');
-      return false;
-    }
-    if (meal.calories <= 0) {
-      setError('Калории должны быть больше 0');
-      return false;
-    }
-    if (meal.protein < 0 || meal.fat < 0 || meal.carbs < 0) {
-      setError('Значения БЖУ не могут быть отрицательными');
-      return false;
-    }
-    return true;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!userId) {
-      setError('Пользователь не авторизован');
-      return;
-    }
-
-    if (!validateMeal(meal)) {
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      if (initialMeal?.id) {
-        // Обновляем существующий прием пищи
-        await updateDoc(doc(db, 'users', userId, 'meals', initialMeal.id), {
-          ...meal,
-          timestamp: meal.timestamp
-        });
-      } else {
-        // Добавляем новый прием пищи
-        await addDoc(collection(db, 'users', userId, 'meals'), {
-          ...meal,
-          timestamp: meal.timestamp
-        });
+    const handleClickOutside = (event: MouseEvent) => {
+      if (formRef.current && !formRef.current.contains(event.target as Node)) {
+        const activeElement = document.activeElement as HTMLElement;
+        if (activeElement && activeElement.blur) {
+          activeElement.blur();
+        }
       }
-      onClose();
-    } catch (error) {
-      console.error('Ошибка сохранения:', error);
-      setError('Произошла ошибка при сохранении');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleGetAiSuggestion = async () => {
-    if (!aiInput.trim()) {
-      setError('Пожалуйста, введите описание блюда');
+    if (!name.trim()) {
+      setError('Введите описание блюда');
+      return;
+    }
+
+    if (!hasUserParameters) {
+      setError('Для точного анализа укажите свои параметры в настройках');
       return;
     }
 
     setIsLoading(true);
-    setError(null);
+    setError('');
+    setIsAiAnalyzed(false);
+    setIsManualEdit(false);
 
     try {
-      const suggestion = await analyzeMeal(aiInput);
-      setMeal(prev => ({
-        ...prev,
-        name: aiInput,
-        calories: suggestion.calories,
-        protein: suggestion.protein,
-        fat: suggestion.fat,
-        carbs: suggestion.carbs
-      }));
-      setEntryMode('manual');
-    } catch (error) {
-      console.error('Ошибка AI анализа:', error);
-      setError('Произошла ошибка при анализе блюда');
+      const analysis = await analyzeMeal(name);
+      console.log('AI Analysis:', { name, analysis }); // Логирование для отладки
+
+      if (analysis.success && analysis.analysis) {
+        setWeight(formatNumber(analysis.analysis.weight));
+        setCalories(formatNumber(analysis.analysis.calories));
+        setProtein(formatNumber(analysis.analysis.protein));
+        setFat(formatNumber(analysis.analysis.fat));
+        setCarbs(formatNumber(analysis.analysis.carbs));
+        setIsAiAnalyzed(true);
+      } else {
+        setError(analysis.error || 'Не удалось проанализировать блюдо. Попробуйте ещё раз или введите данные вручную.');
+      }
+    } catch (err) {
+      console.error('AI Analysis Error:', err);
+      setError('Не удалось проанализировать блюдо. Попробуйте ещё раз или введите данные вручную.');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleWeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newWeight = e.target.value;
+    setWeight(newWeight);
+    
+    if (isAiAnalyzed && !isManualEdit) {
+      const weightRatio = Number(newWeight) / Number(weight);
+      setCalories(formatNumber(Number(calories) * weightRatio));
+      setProtein(formatNumber(Number(protein) * weightRatio));
+      setFat(formatNumber(Number(fat) * weightRatio));
+      setCarbs(formatNumber(Number(carbs) * weightRatio));
+    }
+  };
+
+  const handleNutritionChange = () => {
+    if (!isManualEdit) {
+      setIsManualEdit(true);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!name.trim()) {
+      setError('Введите название блюда');
+      return;
+    }
+
+    const meal: Meal = {
+      id: Date.now().toString(),
+      name: name.trim(),
+      category,
+      timestamp: new Date(),
+      calories: Number(calories) || 0,
+      protein: Number(protein) || 0,
+      fat: Number(fat) || 0,
+      carbs: Number(carbs) || 0,
+      weight: Number(weight) || 100,
+    };
+
+    onSubmit(meal);
   };
 
   return (
-    <motion.div
-      className="fixed inset-0 bg-[#f8f9fa] dark:bg-gray-900 z-50 overflow-y-auto"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-    >
-      <div className="container mx-auto px-4 py-6 max-w-md">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-            {initialMeal ? 'Редактировать блюдо' : 'Добавить блюдо'}
-          </h1>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl"
-          >
-            <IoCloseOutline />
-          </button>
+    <div ref={formRef} className="p-4 max-w-md mx-auto">
+      {!hasUserParameters && (
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4">
+          <p>Чтобы точно рассчитывать цели, укажите свои параметры в настройках.</p>
         </div>
+      )}
 
-        {/* Переключатель режима ввода */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <motion.button
-            onClick={() => setEntryMode('manual')}
-            className={`flex flex-col items-center justify-center p-4 rounded-xl ${
-              entryMode === 'manual'
-                ? 'bg-blue-500 text-white'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-            }`}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <MdOutlineRestaurantMenu className="text-2xl mb-2" />
-            <span>Ручной ввод</span>
-          </motion.button>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Название блюда
+      </label>
+      <input
+        type="text"
+        className="w-full px-4 py-2 rounded-lg border border-gray-300 mb-4"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Например: Овсяная каша с ягодами"
+      />
 
-          <motion.button
-            onClick={() => setEntryMode('ai')}
-            className={`flex flex-col items-center justify-center p-4 rounded-xl ${
-              entryMode === 'ai'
-                ? 'bg-blue-500 text-white'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-            }`}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <AiOutlineRobot className="text-2xl mb-2" />
-            <span>AI помощник</span>
-          </motion.button>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Категория
+      </label>
+      <select
+        className="w-full px-4 py-2 rounded-lg border border-gray-300 mb-4"
+        value={category}
+        onChange={(e) => setCategory(e.target.value as MealCategory)}
+      >
+        {MEAL_CATEGORIES.map((cat) => (
+          <option key={cat} value={cat}>
+            {cat}
+          </option>
+        ))}
+      </select>
+
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Вес (г)
+      </label>
+      <input
+        type="text"
+        inputMode="decimal"
+        pattern="[0-9]*[.,]?[0-9]*"
+        className="w-full px-4 py-2 rounded-lg border border-gray-300 mb-2"
+        value={weight}
+        onChange={handleWeightChange}
+        placeholder="100"
+      />
+      {isAiAnalyzed && !isManualEdit && (
+        <p className="text-sm text-gray-500 mb-4">
+          Это значение рассчитано автоматически. Если изменить вес, значения КБЖУ пересчитаются.
+        </p>
+      )}
+
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Калории
+      </label>
+      <input
+        type="text"
+        inputMode="decimal"
+        pattern="[0-9]*[.,]?[0-9]*"
+        className="w-full px-4 py-2 rounded-lg border border-gray-300 mb-4"
+        value={calories}
+        onChange={(e) => {
+          setCalories(e.target.value);
+          handleNutritionChange();
+        }}
+        placeholder="0"
+      />
+
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Белки (г)
+      </label>
+      <input
+        type="text"
+        inputMode="decimal"
+        pattern="[0-9]*[.,]?[0-9]*"
+        className="w-full px-4 py-2 rounded-lg border border-gray-300 mb-4"
+        value={protein}
+        onChange={(e) => {
+          setProtein(e.target.value);
+          handleNutritionChange();
+        }}
+        placeholder="0"
+      />
+
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Жиры (г)
+      </label>
+      <input
+        type="text"
+        inputMode="decimal"
+        pattern="[0-9]*[.,]?[0-9]*"
+        className="w-full px-4 py-2 rounded-lg border border-gray-300 mb-4"
+        value={fat}
+        onChange={(e) => {
+          setFat(e.target.value);
+          handleNutritionChange();
+        }}
+        placeholder="0"
+      />
+
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Углеводы (г)
+      </label>
+      <input
+        type="text"
+        inputMode="decimal"
+        pattern="[0-9]*[.,]?[0-9]*"
+        className="w-full px-4 py-2 rounded-lg border border-gray-300 mb-4"
+        value={carbs}
+        onChange={(e) => {
+          setCarbs(e.target.value);
+          handleNutritionChange();
+        }}
+        placeholder="0"
+      />
+
+      {isManualEdit && (
+        <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4">
+          <p>Режим ручного редактирования. Пересчёт отключён.</p>
         </div>
+      )}
 
-        {/* Отображение ошибок */}
-        <AnimatePresence>
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="mb-4 p-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-100 rounded-lg"
-            >
-              {error}
-            </motion.div>
-          )}
-        </AnimatePresence>
+      {error && (
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
+          <p>{error}</p>
+        </div>
+      )}
 
-        {entryMode === 'ai' ? (
-          <div className="space-y-4">
-            <textarea
-              value={aiInput}
-              onChange={(e) => setAiInput(e.target.value)}
-              placeholder="Опишите блюдо, например: 'Куриная грудка на гриле с рисом и овощами'"
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white h-32 resize-none"
-            />
-            <motion.button
-              onClick={handleGetAiSuggestion}
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Анализ...
-                </div>
-              ) : (
-                'Оценить с помощью AI'
-              )}
-            </motion.button>
-          </div>
+      <button
+        className={`w-full bg-blue-500 text-white py-2 px-4 rounded-lg mb-4 ${
+          isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'
+        }`}
+        onClick={handleGetAiSuggestion}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <span className="flex items-center justify-center">
+            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Анализ...
+          </span>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Название блюда
-              </label>
-              <input
-                type="text"
-                value={meal.name}
-                onChange={(e) => setMeal({ ...meal, name: e.target.value })}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Калории (ккал)
-              </label>
-              <input
-                type="number"
-                value={meal.calories}
-                onChange={(e) => setMeal({ ...meal, calories: Math.max(0, parseInt(e.target.value) || 0) })}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                min="0"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Белки (г)
-              </label>
-              <input
-                type="number"
-                value={meal.protein}
-                onChange={(e) => setMeal({ ...meal, protein: Math.max(0, parseInt(e.target.value) || 0) })}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                min="0"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Жиры (г)
-              </label>
-              <input
-                type="number"
-                value={meal.fat}
-                onChange={(e) => setMeal({ ...meal, fat: Math.max(0, parseInt(e.target.value) || 0) })}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                min="0"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Углеводы (г)
-              </label>
-              <input
-                type="number"
-                value={meal.carbs}
-                onChange={(e) => setMeal({ ...meal, carbs: Math.max(0, parseInt(e.target.value) || 0) })}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                min="0"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Прием пищи
-              </label>
-              <select
-                value={meal.category}
-                onChange={(e) => setMeal({ ...meal, category: e.target.value as MealCategory })}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              >
-                <option value="breakfast">Завтрак</option>
-                <option value="lunch">Обед</option>
-                <option value="dinner">Ужин</option>
-                <option value="snack">Перекус</option>
-              </select>
-            </div>
-
-            <motion.button
-              type="submit"
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Сохранение...
-                </div>
-              ) : (
-                'Сохранить'
-              )}
-            </motion.button>
-          </form>
+          'Проанализировать'
         )}
-      </div>
-    </motion.div>
+      </button>
+
+      <button
+        className="w-full bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition-colors duration-200"
+        onClick={handleSubmit}
+      >
+        Сохранить
+      </button>
+    </div>
   );
 };
-
-export default AddMealForm;

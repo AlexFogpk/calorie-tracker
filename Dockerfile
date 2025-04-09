@@ -4,7 +4,7 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 # 👇 Кэш-бастинг, чтобы Railway не юзал старое
-ARG CACHE_BREAKER=ts-20250409-8
+ARG CACHE_BREAKER=ts-20250409-9
 RUN echo "Cache bust: $CACHE_BREAKER"
 
 # Установка зависимостей
@@ -21,10 +21,10 @@ RUN echo "=== Сборка сервера ===" && \
     echo "=== Файлы в src/server ===" && \
     ls -la src/server && \
     echo "=== Запуск tsc ===" && \
-    npx tsc -p tsconfig.server.json || ( \
+    npx tsc -p tsconfig.server.json --noEmit --listFiles --pretty false || ( \
         echo "❌ Ошибка TypeScript" && \
         echo "=== Подробный вывод ошибок ===" && \
-        npx tsc -p tsconfig.server.json --listFiles --pretty false --diagnostics --extendedDiagnostics 2>&1 && \
+        npx tsc -p tsconfig.server.json --noEmit --listFiles --pretty false 2>&1 && \
         echo "=== Содержимое проблемных файлов ===" && \
         find src/server -type f -name "*.ts" -exec echo "=== {} ===" \; -exec cat {} \; && \
         exit 1 \

@@ -19,7 +19,7 @@ const openai = new OpenAI({
 });
 
 // Validate AI response
-function validateAiResponse(data: any): data is NutritionData {
+function validateAiResponse(data: unknown): data is NutritionData {
   if (!data || typeof data !== 'object') {
     console.error('Invalid data type:', typeof data);
     return false;
@@ -34,15 +34,15 @@ function validateAiResponse(data: any): data is NutritionData {
     }
     
     if (field === 'name') {
-      if (typeof data[field] !== 'string') {
-        console.error(`Invalid name type: ${typeof data[field]}`);
+      if (typeof (data as any)[field] !== 'string') {
+        console.error(`Invalid name type: ${typeof (data as any)[field]}`);
         return false;
       }
       continue;
     }
     
-    if (typeof data[field] !== 'number' || isNaN(data[field]) || data[field] < 0) {
-      console.error(`Invalid ${field} value:`, data[field]);
+    if (typeof (data as any)[field] !== 'number' || isNaN((data as any)[field]) || (data as any)[field] < 0) {
+      console.error(`Invalid ${field} value:`, (data as any)[field]);
       return false;
     }
   }
@@ -56,8 +56,8 @@ function validateAiResponse(data: any): data is NutritionData {
   };
 
   for (const [field, limit] of Object.entries(limits)) {
-    if (data[field] > limit) {
-      console.error(`${field} exceeds limit:`, data[field], '>', limit);
+    if ((data as any)[field] > limit) {
+      console.error(`${field} exceeds limit:`, (data as any)[field], '>', limit);
       return false;
     }
   }
@@ -209,14 +209,14 @@ const analyzeMealHandler: express.RequestHandler = async (req, res) => {
         throw new Error('Invalid AI response format');
       }
       
-      // Ensure all numeric fields are numbers
+      // Ensure all numeric fields are numbers and within limits
       const validatedData: NutritionData = {
-        name: nutritionData.name,
-        weight: Number(nutritionData.weight),
-        calories: Number(nutritionData.calories),
-        protein: Number(nutritionData.protein),
-        fat: Number(nutritionData.fat),
-        carbs: Number(nutritionData.carbs)
+        name: nutritionData.name || "",
+        weight: Math.min(Math.max(Number(nutritionData.weight) || 100, 0), 10000),
+        calories: Math.min(Math.max(Number(nutritionData.calories) || 0, 0), 5000),
+        protein: Math.min(Math.max(Number(nutritionData.protein) || 0, 0), 200),
+        fat: Math.min(Math.max(Number(nutritionData.fat) || 0, 0), 200),
+        carbs: Math.min(Math.max(Number(nutritionData.carbs) || 0, 0), 400)
       };
       
       console.log('Validated and normalized data:', validatedData);

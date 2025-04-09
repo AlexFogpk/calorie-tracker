@@ -1,29 +1,32 @@
 import { Timestamp } from 'firebase/firestore';
 
-export type MealCategory = 'Завтрак' | 'Обед' | 'Ужин' | 'Перекус';
+export type MealCategory = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
-export const MEAL_CATEGORIES: MealCategory[] = ['Завтрак', 'Обед', 'Ужин', 'Перекус'];
+export const MEAL_CATEGORIES: MealCategory[] = ['breakfast', 'lunch', 'dinner', 'snack'];
 
 export interface Meal {
   id: string;
   name: string;
-  category: string;
+  category: MealCategory;
   timestamp: Date;
-  nutrition: NutritionData;
-}
-
-export interface NutritionData {
-  name: string;
-  weight: number;
   calories: number;
   protein: number;
   fat: number;
   carbs: number;
+  weight: number;
+}
+
+export interface NutritionData {
+  calories: number;
+  protein: number;
+  fat: number;
+  carbs: number;
+  weight: number;
 }
 
 export type Gender = 'male' | 'female';
 
-export type ActivityLevel = 'sedentary' | 'light' | 'moderately_active' | 'active' | 'very_active';
+export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very';
 
 export type Goal = 'weight_loss' | 'maintenance' | 'muscle_gain';
 
@@ -38,14 +41,7 @@ export interface UserParameters {
 
 export interface NutritionGoals extends NutritionData {}
 
-export interface UserParams {
-  gender: Gender;
-  age: number;
-  height: number;
-  weight: number;
-  activityLevel: ActivityLevel;
-  goal: Goal;
-}
+export interface UserParams extends UserParameters {}
 
 export interface User {
   uid: string;
@@ -63,8 +59,10 @@ export interface AiSuggestion {
     fat: number;
     carbs: number;
     portion: number;
+    weight: number;
   };
   error?: string;
+  timestamp: number;
 }
 
 export interface MainMenuScreenProps {
@@ -122,7 +120,6 @@ export function calculateNutritionGoals(params: UserParameters): NutritionGoals 
   const carbs = Math.round((calories - (protein * 4 + fat * 9)) / 4); // Оставшиеся калории из углеводов
 
   return {
-    name: "Дневная норма",
     weight: 0,
     calories,
     protein,

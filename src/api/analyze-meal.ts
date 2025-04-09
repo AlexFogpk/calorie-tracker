@@ -51,19 +51,16 @@ export async function analyzeMeal(description: string): Promise<AiSuggestion> {
         protein: Math.round(nutritionData.protein ?? 0),
         fat: Math.round(nutritionData.fat ?? 0),
         carbs: Math.round(nutritionData.carbs ?? 0),
-        portion: Math.round(nutritionData.weight ?? 100)
-      }
+        portion: Math.round(nutritionData.weight ?? 100),
+        weight: Math.round(nutritionData.weight ?? 100)
+      },
+      timestamp: Date.now()
     };
 
     console.log('Rounded data:', roundedData);
 
-    // Cache the valid result with timestamp
-    mealCacheService.cacheMeal(description, {
-      ...roundedData,
-      timestamp: Date.now()
-    });
-    
-    // Add to history
+    // Cache the valid result
+    mealCacheService.cacheMeal(description, roundedData);
     mealCacheService.addToHistory(description, roundedData);
 
     return roundedData;
@@ -71,7 +68,8 @@ export async function analyzeMeal(description: string): Promise<AiSuggestion> {
     console.error('Ошибка анализа еды:', error);
     return {
       success: false,
-      error: 'Не удалось проанализировать блюдо'
+      error: 'Не удалось проанализировать блюдо',
+      timestamp: Date.now()
     };
   }
 } 
