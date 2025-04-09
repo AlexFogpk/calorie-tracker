@@ -4,58 +4,41 @@ import { IoClose } from 'react-icons/io5';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useAuth } from '../hooks/useAuth';
-
-// Simple function to calculate daily goals based on user parameters
-const calculateDailyGoals = (params: {
-  weight: number;
-  height: number;
-  age: number;
-  gender: 'male' | 'female';
-  activityLevel: 'low' | 'medium' | 'high';
-}) => {
-  const { weight, height, age, gender, activityLevel } = params;
-  
-  // Base metabolic rate calculation (Harris-Benedict formula)
-  let bmr = 0;
-  if (gender === 'male') {
-    bmr = 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age);
-  } else {
-    bmr = 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age);
-  }
-  
-  // Activity multiplier
-  const activityMultiplier = 
-    activityLevel === 'low' ? 1.2 :
-    activityLevel === 'medium' ? 1.55 : 1.9;
-  
-  // Total daily energy expenditure
-  const tdee = Math.round(bmr * activityMultiplier);
-  
-  return {
-    calories: tdee,
-    // Typical macronutrient splits (these can be adjusted based on goals)
-    protein: Math.round(weight * 2), // 2g per kg of bodyweight
-    fat: Math.round(tdee * 0.3 / 9), // 30% of calories from fat (9 cal per gram)
-    carbs: Math.round(tdee * 0.5 / 4) // 50% of calories from carbs (4 cal per gram)
-  };
-};
+import { calculateNutritionGoals } from '@/utils/calculateNutritionGoals';
+import { UserParams, ActivityLevel, Goal } from '@/types';
 
 interface UserParametersProps {
   onComplete: () => void;
 }
 
+const ACTIVITY_LEVELS: { value: ActivityLevel; label: string }[] = [
+  { value: 'sedentary', label: 'Сидячий образ жизни' },
+  { value: 'light', label: 'Легкая активность (1-3 раза в неделю)' },
+  { value: 'moderately_active', label: 'Умеренная активность (3-5 раз в неделю)' },
+  { value: 'active', label: 'Высокая активность (6-7 раз в неделю)' },
+  { value: 'very_active', label: 'Очень высокая активность (2 раза в день)' }
+];
+
+const GOALS: { value: Goal; label: string }[] = [
+  { value: 'weight_loss', label: 'Похудение' },
+  { value: 'maintenance', label: 'Поддержание веса' },
+  { value: 'muscle_gain', label: 'Набор массы' }
+];
+
 const UserParameters: React.FC<UserParametersProps> = ({ onComplete }) => {
   const { user } = useAuth();
-  const [weight, setWeight] = useState('');
-  const [height, setHeight] = useState('');
-  const [age, setAge] = useState('');
-  const [gender, setGender] = useState<'male' | 'female'>('male');
-  const [activityLevel, setActivityLevel] = useState<'low' | 'medium' | 'high'>('medium');
+  const [formData, setFormData] = useState<UserParams>({
+    gender: 'male',
+    age: 25,
+    height: 170,
+    weight: 70,
+    activityLevel: 'moderately_active',
+    goal: 'maintenance'
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Load existing user data when component mounts
     const loadUserData = async () => {
       if (!user) return;
       
@@ -63,11 +46,14 @@ const UserParameters: React.FC<UserParametersProps> = ({ onComplete }) => {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          setWeight(userData.weight?.toString() || '');
-          setHeight(userData.height?.toString() || '');
-          setAge(userData.age?.toString() || '');
-          setGender(userData.gender || 'male');
-          setActivityLevel(userData.activityLevel || 'medium');
+          setFormData({
+            gender: userData.gender || 'male',
+            age: userData.age || 25,
+            height: userData.height || 170,
+            weight: userData.weight || 70,
+            activityLevel: userData.activityLevel || 'moderately_active',
+            goal: userData.goal || 'maintenance'
+          });
         }
       } catch (error) {
         console.error('Error loading user data:', error);
@@ -86,43 +72,30 @@ const UserParameters: React.FC<UserParametersProps> = ({ onComplete }) => {
     setError(null);
 
     try {
-      const parsedWeight = parseFloat(weight);
-      const parsedHeight = parseFloat(height);
-      const parsedAge = parseInt(age);
-
-      if (isNaN(parsedWeight) || isNaN(parsedHeight) || isNaN(parsedAge)) {
-        throw new Error('Пожалуйста, введите корректные числовые значения.');
-      }
-
-      const goals = calculateDailyGoals({
-        weight: parsedWeight,
-        height: parsedHeight,
-        age: parsedAge,
-        gender,
-        activityLevel
-      });
-
-      // Get existing data to preserve any fields we don't want to overwrite
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const existingData = userDoc.exists() ? userDoc.data() : {};
-
+      const goals = calculateNutritionGoals(formData);
+      
       await setDoc(doc(db, 'users', user.uid), {
-        ...existingData,
-        weight: parsedWeight,
-        height: parsedHeight,
-        age: parsedAge,
-        gender,
-        activityLevel,
+        ...formData,
         goals
       });
 
       onComplete();
     } catch (error) {
       console.error('Error saving user parameters:', error);
-      setError(error instanceof Error ? error.message : 'Произошла ошибка при сохранении. Попробуйте еще раз.');
+      setError('Произошла ошибка при сохранении. Попробуйте еще раз.');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'age' || name === 'height' || name === 'weight' 
+        ? Number(value) 
+        : value,
+    }));
   };
 
   return (
@@ -146,18 +119,35 @@ const UserParameters: React.FC<UserParametersProps> = ({ onComplete }) => {
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="weight" className="block text-sm font-medium text-gray-800 mb-1">
-                Вес (кг)
+              <label htmlFor="gender" className="block text-sm font-medium text-gray-800 mb-1">
+                Пол
+              </label>
+              <select
+                id="gender"
+                name="gender"
+                value={formData.gender}
+                onChange={handleChange}
+                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="male">Мужской</option>
+                <option value="female">Женский</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="age" className="block text-sm font-medium text-gray-800 mb-1">
+                Возраст
               </label>
               <input
                 type="number"
-                id="weight"
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
+                id="age"
+                name="age"
+                value={formData.age}
+                onChange={handleChange}
                 className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
-                min="0"
-                step="0.1"
+                min="1"
+                max="120"
               />
             </div>
 
@@ -168,75 +158,77 @@ const UserParameters: React.FC<UserParametersProps> = ({ onComplete }) => {
               <input
                 type="number"
                 id="height"
-                value={height}
-                onChange={(e) => setHeight(e.target.value)}
+                name="height"
+                value={formData.height}
+                onChange={handleChange}
                 className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
-                min="0"
-                step="0.1"
+                min="100"
+                max="250"
               />
             </div>
 
             <div>
-              <label htmlFor="age" className="block text-sm font-medium text-gray-800 mb-1">
-                Возраст
+              <label htmlFor="weight" className="block text-sm font-medium text-gray-800 mb-1">
+                Вес (кг)
               </label>
               <input
                 type="number"
-                id="age"
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
+                id="weight"
+                name="weight"
+                value={formData.weight}
+                onChange={handleChange}
                 className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
-                min="0"
-                max="120"
+                min="30"
+                max="300"
               />
             </div>
 
             <div>
-              <label htmlFor="gender" className="block text-sm font-medium text-gray-800 mb-1">
-                Пол
+              <label htmlFor="activityLevel" className="block text-sm font-medium text-gray-800 mb-1">
+                Уровень активности
               </label>
               <select
-                id="gender"
-                value={gender}
-                onChange={(e) => setGender(e.target.value as 'male' | 'female')}
+                id="activityLevel"
+                name="activityLevel"
+                value={formData.activityLevel}
+                onChange={handleChange}
                 className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="male">Мужской</option>
-                <option value="female">Женский</option>
+                {ACTIVITY_LEVELS.map(level => (
+                  <option key={level.value} value={level.value}>
+                    {level.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="goal" className="block text-sm font-medium text-gray-800 mb-1">
+                Цель
+              </label>
+              <select
+                id="goal"
+                name="goal"
+                value={formData.goal}
+                onChange={handleChange}
+                className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                {GOALS.map(goal => (
+                  <option key={goal.value} value={goal.value}>
+                    {goal.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
 
-          <div>
-            <label htmlFor="activityLevel" className="block text-sm font-medium text-gray-800 mb-1">
-              Уровень активности
-            </label>
-            <select
-              id="activityLevel"
-              value={activityLevel}
-              onChange={(e) => setActivityLevel(e.target.value as 'low' | 'medium' | 'high')}
-              className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="low">Низкий</option>
-              <option value="medium">Средний</option>
-              <option value="high">Высокий</option>
-            </select>
-          </div>
-
           {error && (
-            <p className="text-red-500 text-sm">{error}</p>
+            <div className="text-red-500 text-sm">{error}</div>
           )}
 
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onComplete}
-              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-            >
-              Отмена
-            </button>
+          <div className="flex justify-end">
             <button
               type="submit"
               disabled={isLoading}

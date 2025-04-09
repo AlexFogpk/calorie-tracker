@@ -8,6 +8,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Meal, MealCategory, MEAL_CATEGORIES, NutritionData } from '../types';
 import { analyzeMeal } from '@/api/analyze-meal';
 import { formatNumber } from '@/utils/formatNumber';
+import { mealCacheService } from '../services/mealCacheService';
 
 interface AddMealScreenProps {
   onClose: () => void;
@@ -175,6 +176,56 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal, selec
         return;
       }
 
+      if (!name.trim()) {
+        setError('Введите название блюда');
+        return;
+      }
+
+      if (!user) {
+        setError('Пользователь не авторизован');
+        return;
+      }
+
+      const mealData = {
+        name: name.trim(),
+        calories,
+        protein,
+        fat,
+        carbs,
+        grams,
+        category,
+        timestamp: selectedDate || new Date()
+      };
+
+      // Сохраняем в Firestore
+      const mealRef = await addDoc(collection(db, `users/${user.uid}/meals`), mealData);
+
+      // Добавляем в кэш
+      mealCacheService.cacheMeal(name, {
+        success: true,
+        analysis: {
+          calories,
+          protein,
+          fat,
+          carbs,
+          portion: grams
+        },
+        timestamp: Date.now()
+      });
+
+      // Добавляем в историю
+      mealCacheService.addToHistory(name, {
+        success: true,
+        analysis: {
+          calories,
+          protein,
+          fat,
+          carbs,
+          portion: grams
+        }
+      });
+
+      // Обновляем UI через onAddMeal
       if (onAddMeal) {
         onAddMeal({
           calories,
@@ -186,8 +237,8 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal, selec
 
       onClose();
     } catch (err) {
-      setError('Произошла ошибка при сохранении');
       console.error('Ошибка сохранения:', err);
+      setError('Произошла ошибка при сохранении');
     } finally {
       setIsLoading(false);
     }

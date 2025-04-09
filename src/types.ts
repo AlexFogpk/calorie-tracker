@@ -7,13 +7,9 @@ export const MEAL_CATEGORIES: MealCategory[] = ['Завтрак', 'Обед', '�
 export interface Meal {
   id: string;
   name: string;
-  calories: number;
-  protein: number;
-  fat: number;
-  carbs: number;
-  grams: number;
-  category: MealCategory;
+  category: string;
   timestamp: Date;
+  nutrition: NutritionData;
 }
 
 export interface NutritionData {
@@ -24,14 +20,10 @@ export interface NutritionData {
 }
 
 export type Gender = 'male' | 'female';
-export type ActivityLevel = 
-  | 'sedentary'
-  | 'light'
-  | 'moderately_active'
-  | 'active'
-  | 'very_active'
-  | 'extra_active';
-export type Goal = 'weight_loss' | 'maintenance' | 'muscle_gain' | 'weight_gain';
+
+export type ActivityLevel = 'sedentary' | 'light' | 'moderately_active' | 'active' | 'very_active';
+
+export type Goal = 'weight_loss' | 'maintenance' | 'muscle_gain';
 
 export interface UserParameters {
   gender: Gender;
@@ -42,15 +34,10 @@ export interface UserParameters {
   goal: Goal;
 }
 
-export interface NutritionGoals {
-  calories: number;
-  protein: number;
-  fat: number;
-  carbs: number;
-}
+export interface NutritionGoals extends NutritionData {}
 
 export interface UserParams {
-  gender: 'male' | 'female';
+  gender: Gender;
   age: number;
   height: number;
   weight: number;
@@ -87,12 +74,9 @@ export interface MainMenuScreenProps {
 }
 
 export interface AIAnalysis {
-  portion: number;
-  calories: number;
-  protein: number;
-  fat: number;
-  carbs: number;
-  confidence: number;
+  success: boolean;
+  analysis?: NutritionData;
+  error?: string;
 }
 
 export interface AIResponse {

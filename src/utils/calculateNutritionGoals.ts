@@ -5,38 +5,40 @@ const ACTIVITY_MULTIPLIERS = {
   light: 1.375,
   moderately_active: 1.55,
   active: 1.725,
-  very_active: 1.9,
-  extra_active: 2.0
+  very_active: 1.9
 };
 
 const GOAL_MULTIPLIERS = {
-  weight_loss: 0.8,
-  maintenance: 1.0,
-  muscle_gain: 1.1,
-  weight_gain: 1.2
+  weight_loss: 0.85,    // -15% для похудения
+  maintenance: 1.0,     // без изменений для поддержания
+  muscle_gain: 1.15     // +15% для набора массы
 };
 
 export const calculateNutritionGoals = (params: UserParams): NutritionData => {
-  // Calculate BMR (Basal Metabolic Rate)
+  // Расчет BMR по формуле Миффлина-Сан Жеора
   let bmr: number;
   if (params.gender === 'male') {
-    bmr = 88.362 + (13.397 * params.weight) + (4.799 * params.height) - (5.677 * params.age);
+    bmr = (10 * params.weight) + (6.25 * params.height) - (5 * params.age) + 5;
   } else {
-    bmr = 447.593 + (9.247 * params.weight) + (3.098 * params.height) - (4.330 * params.age);
+    bmr = (10 * params.weight) + (6.25 * params.height) - (5 * params.age) - 161;
   }
 
-  // Calculate TDEE (Total Daily Energy Expenditure)
+  // Расчет TDEE с учетом активности
   const activityMultiplier = ACTIVITY_MULTIPLIERS[params.activityLevel] || 1.2;
-  const goalMultiplier = GOAL_MULTIPLIERS[params.goal] || 1.0;
-  const tdee = bmr * activityMultiplier * goalMultiplier;
+  const tdee = bmr * activityMultiplier;
 
-  // Calculate macronutrient distribution
-  const protein = Math.round(params.weight * 2.2); // 2.2g per kg of body weight
-  const fat = Math.round((tdee * 0.25) / 9); // 25% of calories from fat
-  const carbs = Math.round((tdee - (protein * 4) - (fat * 9)) / 4); // Remaining calories from carbs
+  // Учет цели
+  const goalMultiplier = GOAL_MULTIPLIERS[params.goal] || 1.0;
+  const calories = Math.round(tdee * goalMultiplier);
+
+  // Расчет БЖУ
+  const proteinPerKg = params.goal === 'weight_loss' ? 2.2 : 1.8; // Больше белка при похудении
+  const protein = Math.round(params.weight * proteinPerKg);
+  const fat = Math.round((calories * 0.25) / 9); // 25% калорий из жиров
+  const carbs = Math.round((calories - (protein * 4 + fat * 9)) / 4); // Оставшиеся калории из углеводов
 
   return {
-    calories: Math.round(tdee),
+    calories,
     protein,
     fat,
     carbs
