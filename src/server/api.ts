@@ -2,7 +2,7 @@ import express from 'express';
 import OpenAI from 'openai';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { NutritionData, AIAnalysis } from '@/types';
+import { NutritionData, AIAnalysis } from '../types';
 
 dotenv.config();
 
