@@ -25,6 +25,22 @@ export interface NutritionData {
   carbs: number;
 }
 
+export interface UserParams {
+  goals: {
+    calories: number;
+    protein: number;
+    fat: number;
+    carbs: number;
+  };
+}
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  params?: UserParams;
+}
+
 export interface UserParameters {
   name?: string;
   age: number;

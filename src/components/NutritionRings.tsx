@@ -1,13 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { formatNumber } from '@/utils/formatNumber';
+import { useAuth } from '@/hooks/useAuth';
 
 interface NutritionRingsProps {
-  calories: number;
-  protein: number;
-  fat: number;
-  carbs: number;
-  goals: {
+  nutrition: {
     calories: number;
     protein: number;
     fat: number;
@@ -15,108 +12,168 @@ interface NutritionRingsProps {
   };
 }
 
-const NutritionRings: React.FC<NutritionRingsProps> = ({
-  calories,
-  protein,
-  fat,
-  carbs,
-  goals
-}) => {
-  const rings = [
-    {
-      value: calories,
-      goal: goals.calories,
-      label: 'ккал',
-      color: '#FF3B30', // Apple Red
-      name: 'calories',
-      unit: 'ккал',
-      formatted: formatNumber(calories)
-    },
-    {
-      value: protein,
-      goal: goals.protein,
-      label: 'белки',
-      color: '#32ADE6', // Apple Blue
-      name: 'protein',
-      unit: 'г',
-      formatted: formatNumber(protein)
-    },
-    {
-      value: fat,
-      goal: goals.fat,
-      label: 'жиры',
-      color: '#AF52DE', // Apple Purple
-      name: 'fat',
-      unit: 'г',
-      formatted: formatNumber(fat)
-    },
-    {
-      value: carbs,
-      goal: goals.carbs,
-      label: 'углеводы',
-      color: '#5E5CE6', // Apple Indigo
-      name: 'carbs',
-      unit: 'г',
-      formatted: formatNumber(carbs)
-    }
-  ];
+const NutritionRings: React.FC<NutritionRingsProps> = ({ nutrition }) => {
+  const { user } = useAuth();
+  const goals = user?.params?.goals || {
+    calories: 2000,
+    protein: 150,
+    fat: 65,
+    carbs: 250
+  };
 
-  const pulseAnimation = {
-    scale: [1, 1.05, 1],
-    opacity: [1, 0.8, 1],
-    transition: {
-      duration: 2,
-      repeat: Infinity,
-      ease: "easeInOut"
-    }
+  const progress = {
+    calories: Math.min((nutrition.calories / goals.calories) * 100, 100),
+    protein: Math.min((nutrition.protein / goals.protein) * 100, 100),
+    fat: Math.min((nutrition.fat / goals.fat) * 100, 100),
+    carbs: Math.min((nutrition.carbs / goals.carbs) * 100, 100)
+  };
+
+  const getRingColor = (value: number) => {
+    if (value >= 100) return 'text-red-500';
+    if (value >= 80) return 'text-yellow-500';
+    return 'text-green-500';
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-md p-4">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {rings.map((ring) => {
-          // Безопасный расчет прогресса
-          const progress = ring.goal > 0 ? Math.min(100, (ring.value / ring.goal) * 100) : 0;
+    <div className="grid grid-cols-2 gap-4 p-4">
+      {/* Калории */}
+      <div className="flex flex-col items-center">
+        <div className="relative w-24 h-24">
+          <svg className="w-full h-full" viewBox="0 0 36 36">
+            <path
+              d="M18 2.0845
+                a 15.9155 15.9155 0 0 1 0 31.831
+                a 15.9155 15.9155 0 0 1 0 -31.831"
+              fill="none"
+              stroke="#E5E7EB"
+              strokeWidth="3"
+            />
+            <motion.path
+              d="M18 2.0845
+                a 15.9155 15.9155 0 0 1 0 31.831
+                a 15.9155 15.9155 0 0 1 0 -31.831"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: progress.calories / 100 }}
+              transition={{ duration: 1, ease: "easeInOut" }}
+              className={getRingColor(progress.calories)}
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-lg font-semibold">{formatNumber(nutrition.calories)}</span>
+            <span className="text-xs text-gray-500">
+              / {formatNumber(goals.calories)} ккал
+            </span>
+          </div>
+        </div>
+      </div>
 
-          return (
-            <div key={ring.name} className="flex flex-col items-center">
-              <div className="relative w-24 h-24">
-                {/* Фоновый круг */}
-                <svg className="w-full h-full -rotate-90">
-                  <circle
-                    cx="48"
-                    cy="48"
-                    r="44"
-                    stroke="currentColor"
-                    strokeWidth="8"
-                    fill="none"
-                    className="text-gray-100"
-                  />
-                  {/* Прогресс */}
-                  <circle
-                    cx="48"
-                    cy="48"
-                    r="44"
-                    stroke={ring.color}
-                    strokeWidth="8"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeDasharray={`${2 * Math.PI * 44 * progress / 100} ${2 * Math.PI * 44}`}
-                    style={{
-                      transition: 'stroke-dasharray 0.5s ease'
-                    }}
-                  />
-                </svg>
+      {/* Белки */}
+      <div className="flex flex-col items-center">
+        <div className="relative w-24 h-24">
+          <svg className="w-full h-full" viewBox="0 0 36 36">
+            <path
+              d="M18 2.0845
+                a 15.9155 15.9155 0 0 1 0 31.831
+                a 15.9155 15.9155 0 0 1 0 -31.831"
+              fill="none"
+              stroke="#E5E7EB"
+              strokeWidth="3"
+            />
+            <motion.path
+              d="M18 2.0845
+                a 15.9155 15.9155 0 0 1 0 31.831
+                a 15.9155 15.9155 0 0 1 0 -31.831"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: progress.protein / 100 }}
+              transition={{ duration: 1, ease: "easeInOut" }}
+              className={getRingColor(progress.protein)}
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-lg font-semibold">{formatNumber(nutrition.protein)}</span>
+            <span className="text-xs text-gray-500">
+              / {formatNumber(goals.protein)} г
+            </span>
+          </div>
+        </div>
+      </div>
 
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-lg font-semibold text-gray-800">{ring.formatted}</span>
-                  <span className="text-xs text-gray-500">{ring.unit}</span>
-                </div>
-              </div>
-              <span className="mt-2 text-sm font-medium text-gray-700">{ring.label}</span>
-            </div>
-          );
-        })}
+      {/* Жиры */}
+      <div className="flex flex-col items-center">
+        <div className="relative w-24 h-24">
+          <svg className="w-full h-full" viewBox="0 0 36 36">
+            <path
+              d="M18 2.0845
+                a 15.9155 15.9155 0 0 1 0 31.831
+                a 15.9155 15.9155 0 0 1 0 -31.831"
+              fill="none"
+              stroke="#E5E7EB"
+              strokeWidth="3"
+            />
+            <motion.path
+              d="M18 2.0845
+                a 15.9155 15.9155 0 0 1 0 31.831
+                a 15.9155 15.9155 0 0 1 0 -31.831"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: progress.fat / 100 }}
+              transition={{ duration: 1, ease: "easeInOut" }}
+              className={getRingColor(progress.fat)}
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-lg font-semibold">{formatNumber(nutrition.fat)}</span>
+            <span className="text-xs text-gray-500">
+              / {formatNumber(goals.fat)} г
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Углеводы */}
+      <div className="flex flex-col items-center">
+        <div className="relative w-24 h-24">
+          <svg className="w-full h-full" viewBox="0 0 36 36">
+            <path
+              d="M18 2.0845
+                a 15.9155 15.9155 0 0 1 0 31.831
+                a 15.9155 15.9155 0 0 1 0 -31.831"
+              fill="none"
+              stroke="#E5E7EB"
+              strokeWidth="3"
+            />
+            <motion.path
+              d="M18 2.0845
+                a 15.9155 15.9155 0 0 1 0 31.831
+                a 15.9155 15.9155 0 0 1 0 -31.831"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: progress.carbs / 100 }}
+              transition={{ duration: 1, ease: "easeInOut" }}
+              className={getRingColor(progress.carbs)}
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-lg font-semibold">{formatNumber(nutrition.carbs)}</span>
+            <span className="text-xs text-gray-500">
+              / {formatNumber(goals.carbs)} г
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
