@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
-import router from './api.js';
+import router from './api';
 
 dotenv.config();
 
@@ -14,11 +14,11 @@ app.use(cors());
 app.use(express.json());
 
 // ✅ Подключаем статику (Vite build)
-app.use(express.static('dist'));
+app.use(express.static(path.join(__dirname, '../../dist')));
 
 // ✅ SPA fallback — всё рендерит index.html
 app.get('/', (_, res) => {
-  res.sendFile(path.resolve('dist', 'index.html'));
+  res.sendFile(path.join(__dirname, '../../dist', 'index.html'));
 });
 
 // ✅ API routes

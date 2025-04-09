@@ -4,7 +4,7 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 # 👇 Кэш-бастинг, чтобы Railway не юзал старое
-ARG CACHE_BREAKER=ts-20250409-3
+ARG CACHE_BREAKER=ts-20250409-4
 RUN echo "Cache bust: $CACHE_BREAKER"
 
 # Установка зависимостей
@@ -15,7 +15,7 @@ RUN npm install --no-package-lock
 COPY . .
 
 # Сборка сервера с проверкой ошибок
-RUN npm run build:server || (echo "❌ Ошибка build:server" && exit 1)
+RUN npm run build:server || (echo "❌ Ошибка build:server" && cat tsconfig.server.json && exit 1)
 
 # Сборка фронтенда с проверкой ошибок
 RUN npm run build:railway || (echo "❌ Ошибка build:railway" && exit 1)
