@@ -20,6 +20,16 @@ const resources = {
       'dashboard.progress': 'Сегодняшний прогресс',
       'dashboard.todaysMeals': 'Приемы пищи за сегодня',
       
+      // Meal Categories
+      'meal.category.breakfast': 'Завтрак',
+      'meal.category.lunch': 'Обед',
+      'meal.category.dinner': 'Ужин',
+      'meal.category.snack': 'Перекус',
+
+      // Units
+      'unit.kcal': 'ккал',
+      'unit.gram': 'г',
+
       // Форма добавления еды
       'meal.name': 'Название блюда',
       'meal.category': 'Категория',
@@ -35,6 +45,9 @@ const resources = {
       'meal.error.noName': 'Введите название блюда',
       'meal.error.noParameters': 'Для точного анализа укажите свои параметры в настройках',
       'meal.error.analysisFailed': 'Не удалось проанализировать блюдо. Попробуйте ещё раз или введите данные вручную.',
+
+      // Meal Log
+      'meal.log.noMeals': '— Нет приёмов пищи —',
       
       // Настройки
       'settings.title': 'Мои параметры',
@@ -66,6 +79,12 @@ const resources = {
       'settings.goal.gain_muscle': 'Набор мышечной массы',
       'settings.select.placeholder': 'Выберите...',
       
+      // Nutrition labels (used with values)
+      'nutrition.calories': 'Калории',
+      'nutrition.protein': 'Белки',
+      'nutrition.fat': 'Жиры',
+      'nutrition.carbs': 'Углеводы',
+
       // Уведомления
       'notification.success': 'Успешно',
       'notification.error': 'Ошибка',

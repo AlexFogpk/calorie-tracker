@@ -5,10 +5,10 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useAuth } from '../hooks/useAuth';
 import { calculateNutritionGoals } from '@/utils/calculateNutritionGoals';
-import type { UserParameters as UserParametersType, Gender, ActivityLevel, Goal } from '@/types';
+import type { UserProfile, UserParameters as UserParametersType, Gender, ActivityLevel, Goal } from '@/types';
 
 interface UserParametersProps {
-  onComplete: () => void;
+  onComplete: (updatedProfile: UserProfile) => void; // Use imported UserProfile
   initialData?: UserParametersType;
 }
 
@@ -74,13 +74,16 @@ const UserParameters: React.FC<UserParametersProps> = ({ onComplete, initialData
 
     try {
       const goals = calculateNutritionGoals(formData);
-      
-      await setDoc(doc(db, 'users', user.uid), {
+      const updatedProfileData = {
         ...formData,
         goals
-      });
+      };
+      
+      // Save to Firestore
+      await setDoc(doc(db, 'users', user.uid), updatedProfileData);
 
-      onComplete();
+      // Pass the complete updated profile back to App component
+      onComplete(updatedProfileData);
     } catch (error) {
       console.error('Error saving user parameters:', error);
       setError('Произошла ошибка при сохранении. Попробуйте еще раз.');
@@ -115,7 +118,7 @@ const UserParameters: React.FC<UserParametersProps> = ({ onComplete, initialData
         <div className="p-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">Ваши параметры</h2>
           <button
-            onClick={onComplete}
+            onClick={() => onComplete({})}
             className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <IoClose size={20} />

@@ -31,7 +31,7 @@ const NutritionRings: React.FC<NutritionRingsProps> = ({ current, goals }) => {
         current={current.calories}
         goal={goals.calories}
         unit="ккал"
-        color="#3B82F6"
+        color="#EF4444"
       />
       <SingleRing
         title="Белки"
@@ -52,7 +52,7 @@ const NutritionRings: React.FC<NutritionRingsProps> = ({ current, goals }) => {
         current={current.carbs}
         goal={goals.carbs}
         unit="г"
-        color="#EF4444"
+        color="#3B82F6"
       />
     </motion.div>
   );

@@ -12,7 +12,7 @@ import AddMealScreen from './components/AddMealScreen';
 import DailyMealLog from './components/DailyMealLog';
 import DatePicker from './components/DatePicker';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Meal, MealCategory, MEAL_CATEGORIES, formatDate, NutritionData } from './types';
+import { Meal, MealCategory, MEAL_CATEGORIES, formatDate, NutritionData, UserProfile, UserParameters as UserParametersType } from './types';
 import NutritionRings from './components/NutritionRings';
 import EditMealScreen from './components/EditMealScreen';
 import Calendar from './components/Calendar';
@@ -25,21 +25,6 @@ const formatMobileDate = (date: Date, locale: string = 'ru-RU'): string => {
 };
 
 type Screen = 'welcome' | 'parameters' | 'main' | 'add' | 'edit' | 'addMeal';
-
-interface UserProfile {
-  name?: string;
-  weight?: number;
-  height?: number;
-  age?: number;
-  gender?: 'male' | 'female';
-  activityLevel?: 'low' | 'medium' | 'high';
-  goals?: {
-    calories: number;
-    protein: number;
-    fat: number;
-    carbs: number;
-  };
-}
 
 const App: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -59,8 +44,15 @@ const App: React.FC = () => {
     setCurrentScreen('parameters');
   };
 
-  const handleParametersComplete = () => {
+  const handleParametersComplete = (updatedProfile?: UserProfile) => {
     console.log('Завершение настройки параметров');
+    if (updatedProfile && Object.keys(updatedProfile).length > 0) {
+      setUserProfile(updatedProfile);
+      console.log('User profile updated locally:', updatedProfile);
+    } else {
+      // Optionally re-fetch profile if no data passed (e.g., user just closed the modal)
+      // fetchUserProfile(); // Consider if re-fetching is needed on simple close
+    }
     setCurrentScreen('main');
   };
 
@@ -177,21 +169,24 @@ const App: React.FC = () => {
   return (
     <div className="flex flex-col h-screen bg-gray-100">
       <header className="bg-white shadow-md p-4 flex justify-between items-center sticky top-0 z-10">
-        <AppTitle />
-        <div className="flex items-center space-x-2 sm:space-x-4">
+        <div className="flex-1"></div>
+        <div className="flex-1 text-center">
+           <AppTitle />
+        </div>
+        <div className="flex flex-1 justify-end items-center space-x-2 sm:space-x-4">
           <button
             onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-            className="text-gray-600 hover:text-blue-500"
+            className="text-gray-600 hover:text-blue-500 text-xl sm:text-2xl"
             aria-label={t('aria.toggleCalendar')}
           >
-            <FaCalendarAlt size={20} sm:size={24} />
+            <FaCalendarAlt />
           </button>
           <button
             onClick={handleParametersClick}
-            className="text-gray-600 hover:text-blue-500"
+            className="text-gray-600 hover:text-blue-500 text-xl sm:text-2xl"
             aria-label={t('aria.userSettings')}
           >
-            <FiUser size={20} sm:size={24} />
+            <FiUser />
           </button>
         </div>
       </header>
@@ -224,6 +219,14 @@ const App: React.FC = () => {
         {currentScreen === 'parameters' && (
           <UserParameters
             onComplete={handleParametersComplete}
+            initialData={userProfile ? {
+              gender: userProfile.gender || 'male',
+              age: userProfile.age || 30,
+              height: userProfile.height || 170,
+              weight: userProfile.weight || 70,
+              activityLevel: userProfile.activityLevel || 'moderate',
+              goal: userProfile.goal || 'maintenance'
+            } : undefined}
           />
         )}
         {currentScreen === 'main' && (
@@ -233,15 +236,15 @@ const App: React.FC = () => {
                 <h2 className="text-base sm:text-lg font-semibold mb-2 sm:mb-3 text-center">{t('dashboard.progress')}</h2>
                 <NutritionRings current={dailyTotals} goals={userProfile.goals} />
                 <div className="mt-3 sm:mt-4 text-center text-xs sm:text-sm text-gray-600 grid grid-cols-2 md:grid-cols-4 gap-1 sm:gap-2">
-                   <span>{t('nutrition.calories')}: {userProfile.goals.calories.toFixed(0)}</span>
-                   <span>{t('nutrition.protein')}: {userProfile.goals.protein.toFixed(0)}g</span>
-                   <span>{t('nutrition.fat')}: {userProfile.goals.fat.toFixed(0)}g</span>
-                   <span>{t('nutrition.carbs')}: {userProfile.goals.carbs.toFixed(0)}g</span>
+                   <span>{t('nutrition.calories')}: {userProfile.goals.calories.toFixed(0)} {t('unit.kcal')}</span>
+                   <span>{t('nutrition.protein')}: {userProfile.goals.protein.toFixed(0)}{t('unit.gram')}</span>
+                   <span>{t('nutrition.fat')}: {userProfile.goals.fat.toFixed(0)}{t('unit.gram')}</span>
+                   <span>{t('nutrition.carbs')}: {userProfile.goals.carbs.toFixed(0)}{t('unit.gram')}</span>
                 </div>
               </div>
             )}
 
-            <h2 className="text-base sm:text-lg font-semibold mb-2 sm:mb-3">{t('dashboard.todaysMeals')} ({formatMobileDate(selectedDate, i18n.language)})</h2>
+            <h2 className="text-base sm:text-lg font-semibold mb-2 sm:mb-3 text-center text-black">{t('dashboard.todaysMeals')} ({formatMobileDate(selectedDate, i18n.language)})</h2>
             <DailyMealLog 
               meals={meals}
               onEditMeal={async (meal) => { 
@@ -280,10 +283,10 @@ const App: React.FC = () => {
       {currentScreen === 'main' && (
         <button
           onClick={handleAddMeal}
-          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 bg-blue-500 hover:bg-blue-600 text-white rounded-full p-3 sm:p-4 shadow-lg z-10 transition-colors duration-200 ease-in-out"
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 bg-blue-500 hover:bg-blue-600 text-white rounded-full p-3 shadow-lg z-10 transition-colors duration-200 ease-in-out text-2xl sm:text-3xl"
           aria-label={t('aria.addMeal')}
         >
-          <IoAddCircle size={24} sm:size={28} />
+          <IoAddCircle />
         </button>
       )}
     </div>

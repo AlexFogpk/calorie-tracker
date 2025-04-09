@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { Meal, MealCategory, MEAL_CATEGORIES } from '../types';
 import EditMealModal from './EditMealModal';
+import { useTranslation } from 'react-i18next';
 
 interface DailyMealLogProps {
   meals: Meal[];
@@ -11,6 +12,7 @@ interface DailyMealLogProps {
 }
 
 const DailyMealLog: React.FC<DailyMealLogProps> = ({ meals, onEditMeal, onDeleteMeal }) => {
+  const { t } = useTranslation();
   const [editingMeal, setEditingMeal] = useState<Meal | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
@@ -73,7 +75,7 @@ const DailyMealLog: React.FC<DailyMealLogProps> = ({ meals, onEditMeal, onDelete
           className="bg-white rounded-2xl shadow-md p-4"
         >
           <div className="flex justify-between items-center mb-2 pb-1 border-b border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-900">{category}</h3>
+            <h3 className="text-lg font-semibold text-gray-900 capitalize text-center flex-grow">{t(`meal.category.${category}`)}</h3>
             {(calories > 0 || protein > 0 || fat > 0 || carbs > 0) && (
               <div className="flex items-center space-x-2 text-sm font-medium bg-gray-50 px-2 py-1 rounded-lg">
                 <span className="text-red-500" title="Калории">{calories} ккал</span>
@@ -96,7 +98,7 @@ const DailyMealLog: React.FC<DailyMealLogProps> = ({ meals, onEditMeal, onDelete
                   exit={{ opacity: 0 }}
                   className="text-gray-600 text-center text-sm py-2"
                 >
-                  — Нет приёмов пищи —
+                  {t('meal.log.noMeals')}
                 </motion.p>
               ) : (
                 <motion.div

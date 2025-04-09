@@ -63,7 +63,7 @@ const SingleRing: React.FC<SingleRingProps> = ({
           transition={{ delay: 0.5 }}
           className="absolute inset-0 flex flex-col items-center justify-center text-center"
         >
-          <span className="text-lg font-bold">{Math.round(current)}</span>
+          <span className="text-lg font-bold text-black">{Math.round(current)}</span>
           <span className="text-xs text-gray-500">{unit}</span>
         </motion.div>
       </div>

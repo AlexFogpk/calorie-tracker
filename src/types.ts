@@ -43,6 +43,18 @@ export interface NutritionGoals extends NutritionData {}
 
 export interface UserParams extends UserParameters {}
 
+// Define and export UserProfile interface
+export interface UserProfile {
+  name?: string;
+  weight?: number;
+  height?: number;
+  age?: number;
+  gender?: Gender; // Use existing Gender type
+  activityLevel?: ActivityLevel; // Use existing ActivityLevel type
+  goal?: Goal; // Use existing Goal type
+  goals?: NutritionGoals; // Use existing NutritionGoals type
+}
+
 export interface User {
   uid: string;
   email?: string;
