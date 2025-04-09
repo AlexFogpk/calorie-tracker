@@ -273,10 +273,12 @@ const App: React.FC = () => {
           <div className="flex-1 overflow-auto p-4">
             <div className="max-w-md mx-auto space-y-4">
               <NutritionRings
-                calories={totalCalories}
-                protein={totalProtein}
-                fat={totalFat}
-                carbs={totalCarbs}
+                current={{
+                  calories: totalCalories,
+                  protein: totalProtein,
+                  fat: totalFat,
+                  carbs: totalCarbs
+                }}
                 goals={userProfile?.goals || {
                   calories: 2000,
                   protein: 150,

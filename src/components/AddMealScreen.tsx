@@ -12,9 +12,10 @@ import { formatNumber } from '@/utils/formatNumber';
 interface AddMealScreenProps {
   onClose: () => void;
   onAddMeal?: (meal: NutritionData) => void;
+  selectedDate?: Date;
 }
 
-const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal }) => {
+const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal, selectedDate }) => {
   const { user } = useAuth();
   const [name, setName] = useState('');
   const [category, setCategory] = useState<MealCategory>('Завтрак');

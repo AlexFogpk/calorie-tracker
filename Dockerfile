@@ -4,7 +4,7 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 # 👇 Кэш-бастинг, чтобы Railway не юзал старое
-ARG CACHE_BREAKER=ts-20250408-1
+ARG CACHE_BREAKER=ts-20250409-2
 RUN echo "Cache bust: $CACHE_BREAKER"
 
 # Установка зависимостей

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { UserParams, ActivityLevel, Goal, NutritionData } from '@/types';
-import { calculateNutritionGoals } from '@/utils/calculateNutritionGoals';
+// Temporarily comment out until calculateNutritionGoals module is created
+// import { calculateNutritionGoals } from '@/utils/calculateNutritionGoals'; 
 import { formatNumber } from '@/utils/formatNumber';
 import MyParametersForm from './MyParametersForm';
-// Import shared types if needed (or define locally if only used here)
 
 interface MyParametersScreenProps {
     onGoalsCalculated: (goals: NutritionData) => void;
