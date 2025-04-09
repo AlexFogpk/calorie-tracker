@@ -104,7 +104,7 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal, selec
 
     try {
       const result = await analyzeMeal(name);
-      if (result?.success && result?.analysis) {
+      if (result.success && result.analysis) {
         const { calories, protein, fat, carbs, portion } = result.analysis;
         
         // Проверяем, что все значения корректны
@@ -147,7 +147,8 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal, selec
           });
         }
       } else {
-        setError(result?.error || 'Не удалось проанализировать блюдо');
+        setError(result.error || 'Не удалось проанализировать блюдо');
+        console.error('Ошибка AI анализа:', result.error);
       }
     } catch (err) {
       setError('Произошла ошибка при анализе');

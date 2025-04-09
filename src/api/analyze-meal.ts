@@ -37,23 +37,20 @@ export async function analyzeMeal(description: string): Promise<AiSuggestion> {
 
     const nutritionData = await response.json();
     console.log('Raw nutrition data from API:', nutritionData);
-    console.log('Weight from API:', nutritionData.weight);
 
     // Round all numeric values
-    const roundedData: NutritionData = {
-      name: nutritionData.name,
-      weight: Math.round(nutritionData.weight),
-      calories: Math.round(nutritionData.calories),
-      protein: Math.round(nutritionData.protein),
-      fat: Math.round(nutritionData.fat),
-      carbs: Math.round(nutritionData.carbs)
+    const roundedData = {
+      success: true,
+      analysis: {
+        calories: Math.round(nutritionData.calories),
+        protein: Math.round(nutritionData.protein),
+        fat: Math.round(nutritionData.fat),
+        carbs: Math.round(nutritionData.carbs),
+        portion: Math.round(nutritionData.weight)
+      }
     };
 
-    console.log('Rounded data with weight:', {
-      originalWeight: nutritionData.weight,
-      roundedWeight: roundedData.weight,
-      fullData: roundedData
-    });
+    console.log('Rounded data:', roundedData);
 
     // Cache the valid result with timestamp
     mealCacheService.cacheMeal(description, {
@@ -67,6 +64,9 @@ export async function analyzeMeal(description: string): Promise<AiSuggestion> {
     return roundedData;
   } catch (error) {
     console.error('Ошибка анализа еды:', error);
-    throw new Error('Не удалось проанализировать блюдо');
+    return {
+      success: false,
+      error: 'Не удалось проанализировать блюдо'
+    };
   }
 } 

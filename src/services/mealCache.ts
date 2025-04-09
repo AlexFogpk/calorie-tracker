@@ -1,12 +1,6 @@
 import { AiSuggestion } from '../types';
 
-interface CachedMeal {
-  name: string;
-  weight: number;
-  calories: number;
-  protein: number;
-  fat: number;
-  carbs: number;
+interface CachedMeal extends AiSuggestion {
   timestamp: number;
 }
 
@@ -20,10 +14,10 @@ class MealCacheService {
   private static CACHE_KEY = 'meal_cache';
   private static HISTORY_KEY = 'meal_history';
   private static MAX_HISTORY_ITEMS = 50;
-  private static CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 days
+  private static CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 
-  private cache: Map<string, CachedMeal>;
-  private history: MealHistory[];
+  private cache: Map<string, CachedMeal> = new Map();
+  private history: MealHistory[] = [];
 
   constructor() {
     this.loadCache();
@@ -33,36 +27,30 @@ class MealCacheService {
   private loadCache() {
     try {
       const cached = localStorage.getItem(MealCacheService.CACHE_KEY);
-      const parsedCache = cached ? JSON.parse(cached) : {};
-      this.cache = new Map(Object.entries(parsedCache));
-      
-      // Clean expired items
-      const now = Date.now();
-      for (const [key, value] of this.cache.entries()) {
-        if (now - value.timestamp > MealCacheService.CACHE_EXPIRY) {
-          this.cache.delete(key);
-        }
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        this.cache = new Map(Object.entries(parsed));
       }
     } catch (error) {
       console.error('Error loading cache:', error);
-      this.cache = new Map();
     }
   }
 
   private loadHistory() {
     try {
-      const historyData = localStorage.getItem(MealCacheService.HISTORY_KEY);
-      this.history = historyData ? JSON.parse(historyData) : [];
+      const history = localStorage.getItem(MealCacheService.HISTORY_KEY);
+      if (history) {
+        this.history = JSON.parse(history);
+      }
     } catch (error) {
       console.error('Error loading history:', error);
-      this.history = [];
     }
   }
 
   private saveCache() {
     try {
-      const cacheObj = Object.fromEntries(this.cache.entries());
-      localStorage.setItem(MealCacheService.CACHE_KEY, JSON.stringify(cacheObj));
+      const serialized = JSON.stringify(Object.fromEntries(this.cache));
+      localStorage.setItem(MealCacheService.CACHE_KEY, serialized);
     } catch (error) {
       console.error('Error saving cache:', error);
     }
@@ -87,19 +75,9 @@ class MealCacheService {
     return null;
   }
 
-  cacheMeal(description: string, data: CachedMeal) {
+  cacheMeal(description: string, meal: CachedMeal) {
     const normalizedDesc = description.toLowerCase().trim();
-    const cachedMeal: CachedMeal = {
-      name: data.name,
-      weight: data.weight,
-      calories: data.calories,
-      protein: data.protein,
-      fat: data.fat,
-      carbs: data.carbs,
-      timestamp: Date.now()
-    };
-    
-    this.cache.set(normalizedDesc, cachedMeal);
+    this.cache.set(normalizedDesc, meal);
     this.saveCache();
   }
 
