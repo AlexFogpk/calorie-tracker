@@ -1,14 +1,5 @@
-import type { AiSuggestion } from '@/types';
+import type { AiSuggestion, NutritionData } from '@/types';
 import { mealCacheService } from '../services/mealCache';
-
-export interface NutritionData {
-  name: string;
-  weight: number;
-  calories: number;
-  protein: number;
-  fat: number;
-  carbs: number;
-}
 
 export async function analyzeMeal(description: string): Promise<AiSuggestion> {
   console.log('Starting meal analysis for:', description);

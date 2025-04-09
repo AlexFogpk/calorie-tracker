@@ -101,8 +101,8 @@ const UserParameters: React.FC<UserParametersProps> = ({ onComplete, initialData
         name === 'activityLevel' ? value as ActivityLevel :
         name === 'goal' ? value as Goal :
         // For numeric fields, parse as number
-        (name === 'age' || name === 'height' || name === 'weight') ? Number(value) || 0 :
-        // Fallback for safety, though should not be needed with correct names
+        (name === 'age' || name === 'height' || name === 'weight') ? Number(value) :
+        // Fallback for safety
         value,
     }));
   };
@@ -116,13 +116,16 @@ const UserParameters: React.FC<UserParametersProps> = ({ onComplete, initialData
     >
       <div className="max-w-md mx-auto bg-white rounded-2xl shadow-md overflow-hidden">
         <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Ваши параметры</h2>
-          <button
-            onClick={() => onComplete({})}
-            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <IoClose size={20} />
-          </button>
+          <div className="flex-1"></div>
+          <h2 className="text-lg font-semibold text-gray-900 text-center flex-grow">Ваши параметры</h2>
+          <div className="flex-1 flex justify-end">
+            <button
+              onClick={() => onComplete({})}
+              className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <IoClose size={20} />
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">

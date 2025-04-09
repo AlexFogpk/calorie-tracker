@@ -18,48 +18,30 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// Validate AI response
-function validateAiResponse(data: unknown): data is NutritionData {
+// Simplified validation focusing on essential fields and types
+function validateMinimalAiResponse(data: unknown): data is Partial<NutritionData> {
   if (!data || typeof data !== 'object') {
-    console.error('Invalid data type:', typeof data);
+    console.warn('AI Response: Invalid data type:', typeof data);
     return false;
   }
 
-  const requiredFields = ['calories', 'protein', 'fat', 'carbs', 'weight', 'name'];
-  
-  for (const field of requiredFields) {
-    if (!(field in data)) {
-      console.error(`Missing required field: ${field}`);
-      return false;
-    }
-    
-    if (field === 'name') {
-      if (typeof (data as any)[field] !== 'string') {
-        console.error(`Invalid name type: ${typeof (data as any)[field]}`);
-        return false;
-      }
-      continue;
-    }
-    
-    if (typeof (data as any)[field] !== 'number' || isNaN((data as any)[field]) || (data as any)[field] < 0) {
-      console.error(`Invalid ${field} value:`, (data as any)[field]);
-      return false;
-    }
+  // Check for at least one numeric field to consider it potentially valid
+  const numericFields = ['calories', 'protein', 'fat', 'carbs', 'weight'];
+  const hasAtLeastOneNumber = numericFields.some(field => 
+    Object.prototype.hasOwnProperty.call(data, field) && 
+    typeof (data as any)[field] === 'number' && 
+    !isNaN((data as any)[field])
+  );
+
+  if (!hasAtLeastOneNumber) {
+     console.warn('AI Response: Does not contain any valid numeric nutrition fields.', data);
+     return false;
   }
 
-  const limits = {
-    calories: 5000,
-    protein: 200,
-    fat: 200,
-    carbs: 400,
-    weight: 10000
-  };
-
-  for (const [field, limit] of Object.entries(limits)) {
-    if ((data as any)[field] > limit) {
-      console.error(`${field} exceeds limit:`, (data as any)[field], '>', limit);
+  // Check name if present
+  if (Object.prototype.hasOwnProperty.call(data, 'name') && typeof (data as any).name !== 'string') {
+      console.warn('AI Response: Invalid name type:', typeof (data as any).name);
       return false;
-    }
   }
 
   return true;
@@ -197,75 +179,87 @@ const analyzeMealHandler: express.RequestHandler = async (req, res): Promise<voi
       return;
     }
 
-    let nutritionData: unknown;
+    let nutritionData: any;
     try {
       nutritionData = JSON.parse(content);
       console.log('Raw AI response content:', content);
       console.log('Parsed nutrition data:', nutritionData);
       
-      // Validate the parsed data
-      if (!validateAiResponse(nutritionData)) {
-        console.error('Invalid nutrition data format:', nutritionData);
-        throw new Error('Invalid AI response format');
+      // Use simplified validation
+      if (!validateMinimalAiResponse(nutritionData)) {
+        console.error('Invalid or incomplete nutrition data format from AI:', nutritionData);
+        // Return a specific error instead of generic empty object
+        res.status(400).json({
+          success: false,
+          error: 'Invalid data format received from AI analysis.',
+          raw_content: process.env.NODE_ENV === 'development' ? content : undefined
+        });
+        return;
       }
       
-      // Ensure all numeric fields are numbers and within limits
-      const validatedData: NutritionData = {
-        weight: Math.min(Math.max(Number(nutritionData.weight) || 100, 0), 10000),
-        calories: Math.min(Math.max(Number(nutritionData.calories) || 0, 0), 5000),
-        protein: Math.min(Math.max(Number(nutritionData.protein) || 0, 0), 200),
-        fat: Math.min(Math.max(Number(nutritionData.fat) || 0, 0), 200),
-        carbs: Math.min(Math.max(Number(nutritionData.carbs) || 0, 0), 400)
+      // Safely extract and normalize data, providing defaults
+      const safeData: NutritionData = {
+        weight: Math.round(Number(nutritionData.weight) || 100),
+        calories: Math.round(Number(nutritionData.calories) || 0),
+        protein: Math.round(Number(nutritionData.protein) || 0),
+        fat: Math.round(Number(nutritionData.fat) || 0),
+        carbs: Math.round(Number(nutritionData.carbs) || 0)
       };
       
-      console.log('Validated and normalized data:', validatedData);
-      res.json(validatedData);
+      // Optional: Add basic sanity checks (e.g., calories > 0 if weight > 0)
+      if (safeData.weight > 0 && safeData.calories === 0 && safeData.protein === 0 && safeData.fat === 0 && safeData.carbs === 0) {
+         console.warn('AI returned zero nutrition for non-zero weight:', safeData);
+         // Decide if this should be treated as an error or just logged
+      }
+
+      console.log('Validated and normalized data:', safeData);
+      res.json(safeData); // Send the safely extracted data
       return;
     } catch (error) {
-      console.error('Failed to process AI response:', error);
-      console.error('Raw content:', content);
-      
-      res.json({
-        name: "",
-        weight: 0,
-        calories: 0,
-        protein: 0,
-        fat: 0,
-        carbs: 0
+      console.error('Failed to parse or validate AI response:', error);
+      console.error('Raw content that failed parsing:', content);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to process AI response.',
+        raw_content: process.env.NODE_ENV === 'development' ? content : undefined
       });
       return;
     }
   } catch (error) {
-    console.error('Error in meal analysis:', error);
-    if (error instanceof Error) {
-      console.error('Error details:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-        response: Object.prototype.hasOwnProperty.call(error, 'response') ? (error as any).response : undefined
-      });
-    }
+    console.error('\n--- Error in meal analysis handler ---');
+    console.error('Error Type:', typeof error);
+    console.error('Error Name:', (error instanceof Error ? error.name : 'N/A'));
+    console.error('Error Message:', (error instanceof Error ? error.message : 'N/A'));
     
-    // Check for specific error structures
+    // Attempt to log specific potentially relevant properties
     if (typeof error === 'object' && error !== null) {
-      if (Object.prototype.hasOwnProperty.call(error, 'status') && Object.prototype.hasOwnProperty.call(error, 'message')) {
-        // Likely an OpenAI API error
-        res.status((error as any).status).json({ success: false, error: (error as any).message });
-        return;
-      } else if (Object.prototype.hasOwnProperty.call(error, 'message')) {
-        // Generic error object
-        res.status(500).json({ success: false, error: (error as Error).message });
-        return;
+      console.error('Error Properties (if any):', Object.keys(error));
+      if ('status' in error) console.error('Error Status:', (error as any).status);
+      if ('code' in error) console.error('Error Code:', (error as any).code);
+      // Log potentially nested error details from OpenAI library
+      if ('error' in error && typeof (error as any).error === 'object') {
+         console.error('Nested Error Object:', JSON.stringify((error as any).error, null, 2));
       }
     }
 
-    res.json({
-      name: "",
-      weight: 0,
-      calories: 0,
-      protein: 0,
-      fat: 0,
-      carbs: 0
+    // Try logging the raw error object directly (might show more in some consoles)
+    console.error('Raw Error Object:', error);
+
+    // Attempt stringify again, but catch potential errors
+    try {
+      console.error('Full Error Object (Stringified):', JSON.stringify(error, null, 2));
+    } catch (stringifyError) {
+      console.error('Could not stringify the full error object:', stringifyError);
+    }
+    
+    if (error instanceof Error) {
+      console.error('Error Stack:', error.stack);
+    }
+
+    // General fallback error response
+    res.status(500).json({
+      success: false,
+      error: 'An unexpected server error occurred during analysis.'
     });
   }
 };
