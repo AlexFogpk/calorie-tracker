@@ -1,11 +1,22 @@
 import { useState, useEffect } from 'react';
 import { auth } from '../firebaseConfig';
 import { onAuthStateChanged, signInAnonymously, User, browserLocalPersistence, setPersistence } from 'firebase/auth';
+import { UserParams } from '@/types';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const updateUserParams = async (params: UserParams) => {
+    try {
+      // TODO: Implement API call to update user parameters
+      setUser(prev => prev ? { ...prev, params } : null);
+    } catch (err) {
+      setError('Failed to update user parameters');
+      throw err;
+    }
+  };
 
   useEffect(() => {
     const initAuth = async () => {
@@ -43,5 +54,5 @@ export const useAuth = () => {
     initAuth();
   }, []);
 
-  return { user, loading, error };
+  return { user, loading, error, updateUserParams };
 }; 

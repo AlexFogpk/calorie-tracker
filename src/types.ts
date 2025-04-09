@@ -17,38 +17,23 @@ export interface Meal {
 }
 
 export interface NutritionData {
-  name: string;
-  weight: number;  // масса в граммах
   calories: number;
   protein: number;
   fat: number;
   carbs: number;
 }
 
-export interface UserParams {
-  goals: {
-    calories: number;
-    protein: number;
-    fat: number;
-    carbs: number;
-  };
-}
-
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  params?: UserParams;
-}
+export type Gender = 'male' | 'female';
+export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very';
+export type Goal = 'weight_loss' | 'maintenance' | 'muscle_gain';
 
 export interface UserParameters {
-  name?: string;
+  gender: Gender;
   age: number;
-  gender: 'male' | 'female';
   height: number;
   weight: number;
-  activityLevel: 'low' | 'medium' | 'high';
-  goals?: NutritionGoals;
+  activityLevel: ActivityLevel;
+  goal: Goal;
 }
 
 export interface NutritionGoals {
@@ -56,6 +41,23 @@ export interface NutritionGoals {
   protein: number;
   fat: number;
   carbs: number;
+}
+
+export interface UserParams {
+  gender: 'male' | 'female';
+  age: number;
+  height: number;
+  weight: number;
+  activityLevel: ActivityLevel;
+  goal: Goal;
+}
+
+export interface User {
+  uid: string;
+  email?: string;
+  displayName?: string;
+  photoURL?: string;
+  params?: UserParams;
 }
 
 export interface AiSuggestion {
@@ -112,9 +114,11 @@ export function calculateNutritionGoals(params: UserParameters): NutritionGoals 
 
   // Коэффициент активности
   const activityMultiplier = {
-    low: 1.2,
-    medium: 1.55,
-    high: 1.9
+    sedentary: 1.2,
+    light: 1.375,
+    moderate: 1.55,
+    active: 1.725,
+    very: 1.9
   }[params.activityLevel];
 
   // Суточная норма калорий

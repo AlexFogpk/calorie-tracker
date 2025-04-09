@@ -28,15 +28,14 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal }) => 
     carbs: '',
     grams: ''
   });
-  const [aiValues, setAiValues] = useState<{
+  const [aiGenerated, setAiGenerated] = useState(false);
+  const [originalData, setOriginalData] = useState<{
     calories: number;
     protein: number;
     fat: number;
     carbs: number;
     grams: number;
   } | null>(null);
-  const [aiGenerated, setAiGenerated] = useState(false);
-  const [originalWeight, setOriginalWeight] = useState<number | null>(null);
 
   const validateNumber = (value: string): number | null => {
     const num = parseFloat(value.replace(',', '.'));
@@ -51,26 +50,27 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal }) => 
       setValues(prev => ({ ...prev, [field]: normalizedValue }));
 
       // Если это поле веса и включен AI режим, пересчитываем значения
-      if (field === 'grams' && aiGenerated && originalWeight) {
+      if (field === 'grams' && aiGenerated && originalData) {
         const newWeight = validateNumber(normalizedValue);
-        if (newWeight !== null && aiValues) {
-          const ratio = newWeight / originalWeight;
+        if (newWeight !== null) {
+          const ratio = newWeight / originalData.grams;
           const newValues = {
-            calories: formatNumber(aiValues.calories * ratio),
-            protein: formatNumber(aiValues.protein * ratio),
-            fat: formatNumber(aiValues.fat * ratio),
-            carbs: formatNumber(aiValues.carbs * ratio),
+            calories: formatNumber(Math.round(originalData.calories * ratio)),
+            protein: formatNumber(Math.round(originalData.protein * ratio)),
+            fat: formatNumber(Math.round(originalData.fat * ratio)),
+            carbs: formatNumber(Math.round(originalData.carbs * ratio)),
             grams: normalizedValue
           };
 
           console.log('Пересчет значений:', {
-            исходные: aiValues,
+            исходные: originalData,
             новыйВес: newWeight,
+            коэффициент: ratio,
             результат: {
-              calories: aiValues.calories * ratio,
-              protein: aiValues.protein * ratio,
-              fat: aiValues.fat * ratio,
-              carbs: aiValues.carbs * ratio
+              calories: Math.round(originalData.calories * ratio),
+              protein: Math.round(originalData.protein * ratio),
+              fat: Math.round(originalData.fat * ratio),
+              carbs: Math.round(originalData.carbs * ratio)
             }
           });
 
@@ -78,8 +78,9 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal }) => 
         }
       } else if (field !== 'grams' && aiGenerated) {
         // Если изменено любое другое поле, сбрасываем AI режим
+        console.log('Ручное изменение значения, отключаем AI режим');
         setAiGenerated(false);
-        setOriginalWeight(null);
+        setOriginalData(null);
       }
     }
   };
@@ -106,7 +107,7 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal }) => 
         };
         
         setValues(formattedValues);
-        setAiValues({
+        setOriginalData({
           calories,
           protein,
           fat,
@@ -114,7 +115,16 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal }) => 
           grams: portion
         });
         setAiGenerated(true);
-        setOriginalWeight(portion);
+
+        console.log('AI анализ завершен:', {
+          исходныеЗначения: {
+            calories,
+            protein,
+            fat,
+            carbs,
+            grams: portion
+          }
+        });
       } else {
         setError(result.error || 'Не удалось проанализировать блюдо');
       }
