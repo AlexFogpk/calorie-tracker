@@ -48,12 +48,12 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 
   // Ensure response is sent only once
   if (!res.headersSent) {
-    res.status(500).json({
+  res.status(500).json({
       success: false,
-      error: 'Internal Server Error',
+    error: 'Internal Server Error',
       message: errorMessage,
       stack: errorStack // Include stack in dev mode
-    });
+  });
   } else {
      // If headers already sent, delegate to default Express handler
      next(err);

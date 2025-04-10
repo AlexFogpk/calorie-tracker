@@ -30,10 +30,10 @@ const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose }) 
   const { user, updateUserParams, updateUserGoals, loading: authLoading } = useAuth();
   const [parameters, setParameters] = useState<UserParams>(user?.params || {
     gender: 'male',
-    age: 30,
-    height: 170,
-    weight: 70,
-    activityLevel: 'moderate',
+  age: 30,
+  height: 170,
+  weight: 70,
+  activityLevel: 'moderate',
     goal: 'maintenance'
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -43,10 +43,10 @@ const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose }) 
   useEffect(() => {
     if (user?.params) {
       setParameters(user.params);
-    }
+        }
     if (user?.goals) {
       setCalculatedGoals(user.goals);
-    }
+      }
   }, [user]);
 
   const handleCalculateGoals = () => {
