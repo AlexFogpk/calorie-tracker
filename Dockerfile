@@ -29,8 +29,8 @@ WORKDIR /app
 # Установка только прод-зависимостей
 COPY package.json ./
 COPY package-lock.json ./
-# Explicitly install/update npm before installing dependencies in final stage
-RUN npm install -g npm@latest
+# Explicitly install/update npm (compatible with Node 18) before installing dependencies in final stage
+RUN npm install -g npm@10
 # Keep using npm install as previously changed
 RUN npm install --omit=dev
 
