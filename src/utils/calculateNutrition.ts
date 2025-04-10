@@ -1,4 +1,4 @@
-import { UserParameters, NutritionGoals } from '@/types';
+import { UserParameters, NutritionGoals } from '../types';
 
 export const calculateNutritionGoals = (params: UserParameters): NutritionGoals => {
   // Расчет BMR по формуле Миффлина-Сан Жеора

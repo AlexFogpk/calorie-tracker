@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Meal, MealCategory, MEAL_CATEGORIES, NutritionData } from '@/types';
+import { Meal, MealCategory, MEAL_CATEGORIES, NutritionData } from '../types';
 import { analyzeMeal } from '@/api/analyze-meal';
 import { formatNumber } from '@/utils/formatNumber';
 
@@ -142,9 +142,11 @@ export const AddMealForm: React.FC<AddMealFormProps> = ({ onSubmit, hasUserParam
         value={category}
         onChange={(e) => setCategory(e.target.value as MealCategory)}
       >
+        {/* Use the imported constant */}
         {MEAL_CATEGORIES.map((cat) => (
           <option key={cat} value={cat}>
-            {cat}
+            {/* Maybe translate here if needed, e.g., t(`meal.category.${cat}`) */}
+            {cat} 
           </option>
         ))}
       </select>

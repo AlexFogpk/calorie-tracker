@@ -1,4 +1,4 @@
-import type { AiSuggestion, NutritionData } from '@/types';
+import type { AiSuggestion, NutritionData } from '../types';
 import { mealCacheService } from '../services/mealCache';
 
 export async function analyzeMeal(description: string): Promise<AiSuggestion> {

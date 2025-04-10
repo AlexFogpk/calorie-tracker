@@ -12,7 +12,10 @@ import AddMealScreen from './components/AddMealScreen';
 import DailyMealLog from './components/DailyMealLog';
 import DatePicker from './components/DatePicker';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Meal, MealCategory, MEAL_CATEGORIES, formatDate, NutritionData, UserProfile, UserParameters as UserParametersType } from './types';
+import {
+  Meal, MealCategory, MEAL_CATEGORIES, formatDate, NutritionData,
+  UserProfile, UserParameters as UserParametersType
+} from './types';
 import NutritionRings from './components/NutritionRings';
 import EditMealScreen from './components/EditMealScreen';
 import Calendar from './components/Calendar';

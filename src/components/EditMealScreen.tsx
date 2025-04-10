@@ -3,9 +3,9 @@ import { motion } from 'framer-motion';
 import { IoClose } from 'react-icons/io5';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
-import { useAuth } from '../hooks/useAuth';
 import { Meal, MealCategory, MEAL_CATEGORIES } from '../types';
 import { formatNumber } from '@/utils/formatNumber';
+import { useAuth } from '../hooks/useAuth';
 
 interface EditMealScreenProps {
   meal: Meal;

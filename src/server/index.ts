@@ -31,11 +31,33 @@ app.get('/health', (_, res) => {
 
 // ✅ Error handler
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('Server Error:', err);
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Что-то пошло не так'
-  });
+  // Enhanced logging for the global error handler
+  console.error(`\n--- Global Server Error Handler Caught An Error ---`);
+  console.error(`Timestamp: ${new Date().toISOString()}`);
+  console.error(`Request URL: ${req.originalUrl}`);
+  console.error(`Request Method: ${req.method}`);
+  console.error(`Error Name: ${err.name}`);
+  console.error(`Error Message: ${err.message}`);
+  console.error(`Error Stack: ${err.stack}`);
+  // Log the raw error object if possible
+  console.error(`Raw Error Object:`, err);
+  
+  // Avoid sending stack trace in production
+  const errorMessage = process.env.NODE_ENV === 'development' ? err.message : 'Что-то пошло не так';
+  const errorStack = process.env.NODE_ENV === 'development' ? err.stack : undefined;
+
+  // Ensure response is sent only once
+  if (!res.headersSent) {
+    res.status(500).json({
+      success: false,
+      error: 'Internal Server Error',
+      message: errorMessage,
+      stack: errorStack // Include stack in dev mode
+    });
+  } else {
+     // If headers already sent, delegate to default Express handler
+     next(err);
+  }
 });
 
 // ✅ Запуск сервера на 0.0.0.0 (Railway требует именно так)

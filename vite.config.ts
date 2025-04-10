@@ -29,7 +29,7 @@ export default defineConfig({
         'top-level-await': true
       },
     },
-    include: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+    include: ['firebase/app', 'firebase/auth', 'firebase/firestore', 'src/types.ts'],
   },
   build: {
     outDir: 'dist',

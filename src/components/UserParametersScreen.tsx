@@ -10,7 +10,6 @@ import NutritionRings from './NutritionRings';
 
 interface UserParametersScreenProps {
   onClose: () => void;
-  onGoalsCalculated: (goals: NutritionGoals) => void;
 }
 
 const ACTIVITY_LEVELS: { value: ActivityLevel; label: string }[] = [
@@ -27,114 +26,74 @@ const GOALS: { value: Goal; label: string }[] = [
   { value: 'muscle_gain', label: 'Набор мышечной массы' }
 ];
 
-const defaultParameters: UserParameters = {
-  age: 30,
-  gender: 'male',
-  height: 170,
-  weight: 70,
-  activityLevel: 'moderate',
-  goal: 'maintenance',
-};
-
-const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose, onGoalsCalculated }) => {
-  const { user, updateUserParams, params: loadedParams, loading: authLoading } = useAuth();
-  const [parameters, setParameters] = useState<UserParams>(loadedParams || defaultParameters);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose }) => {
+  const { user, updateUserParams, updateUserGoals, loading: authLoading } = useAuth();
+  const [parameters, setParameters] = useState<UserParams>(user?.params || {
+    gender: 'male',
+    age: 30,
+    height: 170,
+    weight: 70,
+    activityLevel: 'moderate',
+    goal: 'maintenance'
+  });
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [calculatedGoals, setCalculatedGoals] = useState<NutritionGoals | null>(user?.goals || null);
 
   useEffect(() => {
-    const loadUserParameters = async () => {
-      if (!user) return;
-
-      try {
-        const docRef = doc(db, 'users', user.uid);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-          setParameters(docSnap.data() as UserParams);
-        }
-      } catch (error) {
-        console.error('Ошибка загрузки параметров:', error);
-        setError('Не удалось загрузить параметры');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadUserParameters();
+    if (user?.params) {
+      setParameters(user.params);
+    }
+    if (user?.goals) {
+      setCalculatedGoals(user.goals);
+    }
   }, [user]);
 
-  const validateParameters = (params: UserParams): boolean => {
-    if (params.age < 0 || params.age > 150) {
-      setError('Некорректный возраст');
-      return false;
-    }
-    if (params.height < 0 || params.height > 300) {
-      setError('Некорректный рост');
-      return false;
-    }
-    if (params.weight < 0 || params.weight > 500) {
-      setError('Некорректный вес');
-      return false;
-    }
-    return true;
+  const handleCalculateGoals = () => {
+    const goals = calculateNutritionGoals(parameters);
+    setCalculatedGoals(goals);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) {
-      setError('Пользователь не авторизован');
-      return;
-    }
-
-    if (!validateParameters(parameters)) {
-      return;
-    }
-
-    setSaving(true);
+  const handleSave = async () => {
+    setIsLoading(true);
     setError(null);
-
     try {
-      await setDoc(doc(db, 'users', user.uid), parameters);
+      await updateUserParams(parameters);
+      
+      let goalsToSave = calculatedGoals;
+      if (!goalsToSave) {
+        goalsToSave = calculateNutritionGoals(parameters);
+        setCalculatedGoals(goalsToSave);
+      }
+      await updateUserGoals(goalsToSave);
+
       onClose();
-    } catch (error) {
-      console.error('Ошибка сохранения параметров:', error);
-      setError('Произошла ошибка при сохранении');
+    } catch (err) {
+      console.error('Error saving parameters or goals:', err);
+      setError(err instanceof Error ? err.message : 'Failed to save settings');
     } finally {
-      setSaving(false);
+      setIsLoading(false);
     }
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-    field: keyof UserParams | 'goal'
-  ) => {
-    const value = e.target.value;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
     setParameters(prev => {
-      if (!prev) return null;
-      if (field === 'gender') {
-        return { ...prev, [field]: value as Gender };
-      }
-      if (field === 'activityLevel') {
-        return { ...prev, [field]: value as ActivityLevel };
-      }
-      if (field === 'goal') {
-        return { ...prev, [field]: value as Goal };
-      }
-      if (field === 'age' || field === 'height' || field === 'weight') {
-        return { ...prev, [field]: parseInt(value, 10) || 0 };
-      }
-      return prev;
+      const updatedParams = {
+        ...prev,
+        [name]: 
+          name === 'gender' ? value :
+          name === 'activityLevel' ? value :
+          name === 'goal' ? value :
+          Number(value)
+      };
+      setCalculatedGoals(null);
+      return updatedParams;
     });
   };
 
-  if (loading) {
-    return (
-      <div className="fixed inset-0 bg-[#f8f9fa] dark:bg-gray-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
+  if (authLoading) {
+    return <div className="p-4">Loading user data...</div>;
   }
 
   return (
@@ -170,7 +129,7 @@ const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose, on
           )}
         </AnimatePresence>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Возраст
@@ -178,7 +137,8 @@ const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose, on
             <input
               type="number"
               value={parameters.age}
-              onChange={(e) => handleChange(e, 'age')}
+              onChange={handleChange}
+              name="age"
               className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               min="0"
               required
@@ -191,7 +151,8 @@ const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose, on
             </label>
             <select
               value={parameters.gender}
-              onChange={(e) => handleChange(e, 'gender')}
+              onChange={handleChange}
+              name="gender"
               className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
               <option value="male">Мужской</option>
@@ -206,7 +167,8 @@ const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose, on
             <input
               type="number"
               value={parameters.height}
-              onChange={(e) => handleChange(e, 'height')}
+              onChange={handleChange}
+              name="height"
               className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               min="0"
               required
@@ -220,7 +182,8 @@ const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose, on
             <input
               type="number"
               value={parameters.weight}
-              onChange={(e) => handleChange(e, 'weight')}
+              onChange={handleChange}
+              name="weight"
               className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               min="0"
               required
@@ -233,7 +196,8 @@ const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose, on
             </label>
             <select
               value={parameters.activityLevel}
-              onChange={(e) => handleChange(e, 'activityLevel')}
+              onChange={handleChange}
+              name="activityLevel"
               className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
               {ACTIVITY_LEVELS.map(level => (
@@ -248,7 +212,8 @@ const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose, on
             </label>
             <select
               value={parameters.goal}
-              onChange={(e) => handleChange(e, 'goal')}
+              onChange={handleChange}
+              name="goal"
               className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
               {GOALS.map(g => (
@@ -257,14 +222,32 @@ const UserParametersScreen: React.FC<UserParametersScreenProps> = ({ onClose, on
             </select>
           </div>
 
+          <div className="mt-6">
+            <button 
+              onClick={handleCalculateGoals}
+              className="w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 mb-2"
+            >
+              Рассчитать рекомендуемые цели
+            </button>
+            {calculatedGoals && (
+              <div className="mt-2 p-3 bg-gray-100 rounded">
+                <h3 className="text-sm font-medium text-gray-800 mb-1">Рекомендуемые цели:</h3>
+                <p className="text-sm text-gray-600">Калории: {calculatedGoals.calories.toFixed(0)} ккал</p>
+                <p className="text-sm text-gray-600">Белки: {calculatedGoals.protein.toFixed(0)} г</p>
+                <p className="text-sm text-gray-600">Жиры: {calculatedGoals.fat.toFixed(0)} г</p>
+                <p className="text-sm text-gray-600">Углеводы: {calculatedGoals.carbs.toFixed(0)} г</p>
+              </div>
+            )}
+          </div>
+
           <motion.button
             type="submit"
             className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors mt-6"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            disabled={saving}
+            disabled={isLoading || authLoading}
           >
-            {saving ? (
+            {isLoading ? (
               <div className="flex items-center justify-center">
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                 Сохранение...

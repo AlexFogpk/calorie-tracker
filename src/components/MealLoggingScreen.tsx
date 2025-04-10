@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Meal, MealCategory, MEAL_CATEGORIES } from '@/types';
+// Revert to named imports, using relative path
+import { Meal, MealCategory, MEAL_CATEGORIES } from '../types';
+// Remove default import
+// import Types from '../types';
+// const { MEAL_CATEGORIES } = Types;
 import MealCategorySection from './MealCategorySection';
 import { AddMealForm } from './AddMealForm';
 import { getDisplayDate, getTodayDateString } from '../utils/dateUtils';
@@ -58,6 +62,7 @@ const MealLoggingScreen: React.FC<MealLoggingScreenProps> = ({
     setCategoryToAdd(null);
   };
 
+  // Use the imported constant
   const categories: MealCategory[] = MEAL_CATEGORIES;
   const safeMealsForDate = mealsForDate || { 'Завтрак': [], 'Обед': [], 'Ужин': [], 'Перекус': [] };
 
@@ -92,11 +97,8 @@ const MealLoggingScreen: React.FC<MealLoggingScreenProps> = ({
 
       {isModalOpen && (
         <AddMealForm
-          onClose={() => setIsModalOpen(false)}
           onSubmit={handleMealSubmit}
-          category={categoryToAdd}
-          date={getDisplayDate(selectedDate)}
-          initialMeal={mealToEdit?.meal}
+          hasUserParameters={true}
         />
       )}
     </div>

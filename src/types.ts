@@ -1,9 +1,15 @@
-import { Timestamp } from 'firebase/firestore';
+// import { Timestamp } from 'firebase/firestore'; // Removed unused import
 
 export type MealCategory = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
-export const MEAL_CATEGORIES: MealCategory[] = ['breakfast', 'lunch', 'dinner', 'snack'];
+// Define the constant first
+const mealCategoriesArray: MealCategory[] = ['breakfast', 'lunch', 'dinner', 'snack'];
 
+// Use named export
+export { mealCategoriesArray as MEAL_CATEGORIES };
+
+// Uncomment everything else 
+// /* // Remove start comment
 export interface Meal {
   id: string;
   name: string;
@@ -107,15 +113,13 @@ export const formatDate = (date: Date): string => {
 };
 
 export function calculateNutritionGoals(params: UserParameters): NutritionGoals {
-  // Базовый обмен веществ (формула Миффлина-Сан Жеора)
+  // Restore implementation
   let bmr;
   if (params.gender === 'male') {
     bmr = 10 * params.weight + 6.25 * params.height - 5 * params.age + 5;
   } else {
     bmr = 10 * params.weight + 6.25 * params.height - 5 * params.age - 161;
   }
-
-  // Коэффициент активности
   const activityMultiplier = {
     sedentary: 1.2,
     light: 1.375,
@@ -123,15 +127,10 @@ export function calculateNutritionGoals(params: UserParameters): NutritionGoals 
     active: 1.725,
     very: 1.9
   }[params.activityLevel];
-
-  // Суточная норма калорий
   const calories = Math.round(bmr * activityMultiplier);
-
-  // Распределение макронутриентов
-  const protein = Math.round(params.weight * 2); // 2г белка на кг веса
-  const fat = Math.round((calories * 0.25) / 9); // 25% калорий из жиров
-  const carbs = Math.round((calories - (protein * 4 + fat * 9)) / 4); // Оставшиеся калории из углеводов
-
+  const protein = Math.round(params.weight * 2); 
+  const fat = Math.round((calories * 0.25) / 9); 
+  const carbs = Math.round((calories - (protein * 4 + fat * 9)) / 4);
   return {
     weight: 0,
     calories,
@@ -143,4 +142,13 @@ export function calculateNutritionGoals(params: UserParameters): NutritionGoals 
 
 export const getMealCategoryTitle = (category: MealCategory): string => {
   return category.charAt(0).toUpperCase() + category.slice(1);
-}; 
+};
+// */ // Remove end comment
+
+// Ensure default export remains removed
+/*
+const Types = {
+    MEAL_CATEGORIES: mealCategoriesArray,
+};
+export default Types; 
+*/ 

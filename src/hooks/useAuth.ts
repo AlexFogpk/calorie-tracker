@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { auth, db } from '../firebaseConfig';
 import { onAuthStateChanged, signInAnonymously, User as FirebaseUser, browserLocalPersistence, setPersistence } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { UserParams, User, NutritionGoals } from '@/types';
+import { UserParams, User, NutritionGoals } from '../types';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);

@@ -1,4 +1,4 @@
-import { UserParams, NutritionData } from '@/types';
+import { UserParams, NutritionData } from '../types';
 
 const ACTIVITY_MULTIPLIERS = {
   sedentary: 1.2,

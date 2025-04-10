@@ -9,6 +9,7 @@ import { Meal, MealCategory, MEAL_CATEGORIES, NutritionData } from '../types';
 import { analyzeMeal } from '@/api/analyze-meal';
 import { formatNumber } from '@/utils/formatNumber';
 import { mealCacheService } from '@/services/mealCache';
+import { AddMealForm } from './AddMealForm';
 
 interface AddMealScreenProps {
   onClose: () => void;
@@ -315,14 +316,14 @@ const AddMealScreen: React.FC<AddMealScreenProps> = ({ onClose, onAddMeal, selec
               onChange={(e) => setCategory(e.target.value as MealCategory)}
               className="w-full px-3 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              {MEAL_CATEGORIES.map(cat => (
+              {/* MEAL_CATEGORIES.map(cat => (
                 <option key={cat} value={cat}>
                   {cat === 'breakfast' ? 'Завтрак' :
                    cat === 'lunch' ? 'Обед' :
                    cat === 'dinner' ? 'Ужин' :
                    cat === 'snack' ? 'Перекус' : cat}
                 </option>
-              ))}
+              )) */}
             </select>
           </div>
 
