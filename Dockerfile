@@ -1,5 +1,6 @@
 # ===== Этап 1: Сборка фронтенда и сервера =====
-FROM node:18-alpine AS builder
+# Use full Node.js image for building to avoid potential Alpine issues
+FROM node:18 AS builder
 
 WORKDIR /app
 
@@ -20,6 +21,7 @@ COPY . .
 RUN npm run build:railway || (echo "❌ Ошибка build:railway" && exit 1)
 
 # ===== Этап 2: Финальный образ =====
+# Keep Alpine for smaller final image size
 FROM node:18-alpine
 
 WORKDIR /app
@@ -27,7 +29,9 @@ WORKDIR /app
 # Установка только прод-зависимостей
 COPY package.json ./
 COPY package-lock.json ./
-# Change from npm ci to npm install to try and fix error 127
+# Explicitly install/update npm before installing dependencies in final stage
+RUN npm install -g npm@latest
+# Keep using npm install as previously changed
 RUN npm install --omit=dev
 
 # Копируем собранные артефакты
