@@ -7,31 +7,16 @@ WORKDIR /app
 ARG CACHE_BREAKER=ts-20250409-9
 RUN echo "Cache bust: $CACHE_BREAKER"
 
-# Установка зависимостей
+# Установка зависимостей (включая devDependencies для сборки)
 COPY package.json ./
 COPY package-lock.json ./
+# If this step causes Error 137, increasing memory in Railway is the best solution.
 RUN npm ci
 
 # Копируем проект
 COPY . .
 
-# 💥 Добавим явный вывод ошибок TypeScript
-RUN echo "=== Сборка сервера ===" && \
-    echo "=== tsconfig.server.json ===" && \
-    cat tsconfig.server.json && \
-    echo "=== Файлы в src/server ===" && \
-    ls -la src/server && \
-    echo "=== Запуск tsc ===" && \
-    npx tsc -p tsconfig.server.json --noEmit --listFiles --pretty false || ( \
-        echo "❌ Ошибка TypeScript" && \
-        echo "=== Подробный вывод ошибок ===" && \
-        npx tsc -p tsconfig.server.json --noEmit --listFiles --pretty false 2>&1 && \
-        echo "=== Содержимое проблемных файлов ===" && \
-        find src/server -type f -name "*.ts" -exec echo "=== {} ===" \; -exec cat {} \; && \
-        exit 1 \
-    )
-
-# Сборка фронтенда с проверкой ошибок
+# Сборка фронтенда и сервера (используя скрипт)
 RUN npm run build:railway || (echo "❌ Ошибка build:railway" && exit 1)
 
 # ===== Этап 2: Финальный образ =====
@@ -42,7 +27,8 @@ WORKDIR /app
 # Установка только прод-зависимостей
 COPY package.json ./
 COPY package-lock.json ./
-RUN npm ci --omit=dev
+# Change from npm ci to npm install to try and fix error 127
+RUN npm install --omit=dev
 
 # Копируем собранные артефакты
 COPY --from=builder /app/dist ./dist
